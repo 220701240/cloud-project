@@ -1,0 +1,32 @@
+# Automatically normalize line endings
+* text=auto
+
+# JavaScript and JSON files
+*.js  text eol=lf
+*.jsx text eol=lf
+*.ts  text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+
+# Config and documentation
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.md   text eol=lf
+*.html text eol=lf
+*.css  text eol=lf
+
+# Shell scripts - must use LF to work in Linux/macOS
+*.sh text eol=lf
+
+# Batch files (Windows)
+*.bat text eol=crlf
+
+# Images and binaries - keep as is
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.exe binary
