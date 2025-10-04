@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Company Management - Placement Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <h1>Company Management</h1>
+  <!-- Add/Edit Company -->
+  <section id="add-company">
+    <h2 id="formTitle">Add New Company</h2>
+    <form id="addCompanyForm">
+      <input type="hidden" id="companyId">
+      <input type="text" id="companyName" placeholder="Company Name" required>
+      <input type="text" id="industry" placeholder="Industry" required>
+      <input type="text" id="location" placeholder="Location" required>
+      <input type="url" id="website" placeholder="Website">
+      <input type="text" id="description" placeholder="Description">
+      <button type="submit">Save Company</button>
+      <button type="button" id="cancelEdit" style="display:none;">Cancel</button>
+    </form>
+  </section>
+
+  <!-- Company List -->
+  <section id="company-list">
+    <h2>Available Companies</h2>
+    <table border="1">
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>Industry</th>
+          <th>Location</th>
+          <th>Website</th>
+          <th>Description</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="companyTable"></tbody>
+    </table>
+  </section>
+
+  <script>
+    // Add or update company
+    document.getElementById('addCompanyForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('companyId').value;
+      const name = document.getElementById('companyName').value;
+      const industry = document.getElementById('industry').value;
+      const location = document.getElementById('location').value;
+      const website = document.getElementById('website').value;
+      const description = document.getElementById('description').value;
+
+      const payload = { name, industry, location, website, description };
+      let method = 'POST';
+      let url = '/api/companies';
+      if (id) {
+        method = 'PUT';
+        url = `/api/companies/${id}`;
+      }
+      try {
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          alert(id ? 'Company updated!' : 'Company added!');
+          resetForm();
+          loadCompanies();
+        } else {
+          alert('Failed to save company');
+        }
+      } catch (err) {
+        console.error('Error saving company:', err);
+      }
+    });
+
+    // Load companies
+    async function loadCompanies() {
+      try {
+        const res = await fetch('/api/companies');
+        const data = await res.json();
+        const table = document.getElementById('companyTable');
+        table.innerHTML = '';
+        data.forEach(comp => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${comp.Name}</td>
+            <td>${comp.Industry}</td>
+            <td>${comp.Location}</td>
+            <td><a href="${comp.Website}" target="_blank">${comp.Website || ''}</a></td>
+            <td>${comp.Description || ''}</td>
+            <td>
+              <button onclick="editCompany(${comp.CompanyID}, '${comp.Name.replace(/'/g, "&#39;")}', '${comp.Industry.replace(/'/g, "&#39;")}', '${comp.Location.replace(/'/g, "&#39;")}', '${(comp.Website||'').replace(/'/g, "&#39;")}', '${(comp.Description||'').replace(/'/g, "&#39;")}')">Edit</button>
+              <button onclick="deleteCompany(${comp.CompanyID})">Delete</button>
+            </td>
+          `;
+          table.appendChild(row);
+        });
+      } catch (err) {
+        console.error('Error loading companies:', err);
+      }
+    }
+
+    // Edit company
+    window.editCompany = function(id, name, industry, location, website, description) {
+      document.getElementById('companyId').value = id;
+      document.getElementById('companyName').value = name;
+      document.getElementById('industry').value = industry;
+      document.getElementById('location').value = location;
+      document.getElementById('website').value = website;
+      document.getElementById('description').value = description;
+      document.getElementById('formTitle').innerText = 'Edit Company';
+      document.getElementById('cancelEdit').style.display = '';
+    }
+
+    // Cancel edit
+    document.getElementById('cancelEdit').onclick = resetForm;
+    function resetForm() {
+      document.getElementById('companyId').value = '';
+      document.getElementById('companyName').value = '';
+      document.getElementById('industry').value = '';
+      document.getElementById('location').value = '';
+      document.getElementById('website').value = '';
+      document.getElementById('description').value = '';
+      document.getElementById('formTitle').innerText = 'Add New Company';
+      document.getElementById('cancelEdit').style.display = 'none';
+    }
+
+    // Delete company
+    window.deleteCompany = async function(id) {
+      if (!confirm('Delete this company?')) return;
+      try {
+        const res = await fetch('/api/companies/' + id, { method: 'DELETE' });
+        if (res.ok) {
+          alert('Company deleted');
+          loadCompanies();
+        }
+      } catch (err) {
+        console.error('Error deleting company:', err);
+      }
+    }
+
+    // Initialize
+    loadCompanies();
+  </script>
+</body>
+</html>

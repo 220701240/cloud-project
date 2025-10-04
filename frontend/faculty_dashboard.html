@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Faculty Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f8f9fa;
+    }
+    header {
+      background: #28a745;
+      color: white;
+      padding: 15px;
+      text-align: center;
+    }
+    nav {
+      background: #343a40;
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+    }
+    nav a {
+      color: white;
+      margin: 0 15px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    section {
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background: #28a745;
+      color: white;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button.delete {
+      background: #dc3545;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+
+  <script>
+    // Auth check: Only allow faculty
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+    if (!token || role !== 'faculty') {
+      window.location.href = 'login.html';
+    }
+    function logout() {
+      localStorage.clear();
+      window.location.href = 'login.html';
+    }
+  </script>
+
+  <header>
+    <h1>Faculty Dashboard</h1>
+  </header>
+
+  <nav>
+  <a href="#applications">Applications</a>
+  <a href="#" onclick="logout()">Logout</a>
+  </nav>
+
+  <section id="applications" class="card">
+    <h2>Student Applications</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Company</th>
+          <th>Role</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Comments</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="applicationsTable"></tbody>
+    </table>
+  </section>
+
+  <script>
+    async function loadApplications() {
+      const res = await fetch('/api/applications', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      const table = document.getElementById('applicationsTable');
+      table.innerHTML = '';
+      data.forEach(app => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${app.FirstName} ${app.LastName} (${app.RollNumber})</td>
+          <td>${app.CompanyName}</td>
+          <td>${app.Role}</td>
+          <td>${app.Type}</td>
+          <td>${app.Status}</td>
+          <td>${app.Comments || ''}</td>
+          <td>
+            <button onclick="reviewApplication(${app.ApplicationID}, 'Approved')">Approve</button>
+            <button onclick="reviewApplication(${app.ApplicationID}, 'Rejected')" class="delete">Reject</button>
+          </td>
+        `;
+        table.appendChild(row);
+      });
+    }
+
+    window.reviewApplication = function(id, status) {
+      const comments = prompt('Enter comments (optional):');
+      const reviewedBy = localStorage.getItem('fullName') || 'Faculty';
+      fetch(`/api/applications/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ status, reviewedBy, comments })
+      }).then(res => {
+        if (res.ok) {
+          alert('Application updated!');
+          loadApplications();
+        } else {
+          alert('Error updating application');
+        }
+      });
+    }
+
+    // Initialize
+    loadApplications();
+  </script>
+
+</body>
+</html>
