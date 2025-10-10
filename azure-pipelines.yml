@@ -56,7 +56,7 @@ steps:
       az containerapp update `
         --name $ContainerAppName `
         --resource-group $ResourceGroup `
-        --env-vars $envArgsString
+        --set-env-vars $envArgsString
   displayName: 'Update backend env variables'
 
 - powershell: |
