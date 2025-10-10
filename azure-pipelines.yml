@@ -56,7 +56,7 @@ steps:
 # ----------------------------
 - task: AzureCLI@2
   inputs:
-    azureSubscription: 'MyAzureConnection'          # Replace with actual Azure connection name
+    azureSubscription: 'MyAzureConnection'
     scriptType: 'powershell'
     scriptLocation: 'inlineScript'
     inlineScript: |
@@ -76,16 +76,17 @@ steps:
           AZURE_STORAGE_KEY = "$(AZURE_STORAGE_KEY)"
           AZURE_LANGUAGE_KEY = "$(AZURE_LANGUAGE_KEY)"
           AZURE_LANGUAGE_ENDPOINT = "$(AZURE_LANGUAGE_ENDPOINT)"
-      } | ConvertTo-Json -Compress
+      }
 
+      # Convert hashtable to key=value array
       $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
 
+      # Update container app
       az containerapp update `
           --name $ContainerAppName `
           --resource-group $ResourceGroup `
-          --env-vars $envVars
+          --env-vars $envArgs
   displayName: 'Update backend env variables'
-  
 
 # ----------------------------
 # Step 5: Finish
