@@ -1,10 +1,11 @@
 trigger:
 - main   # Trigger pipeline on push to main branch
+
 pool:
   name: Default   # your self-hosted agent pool
   demands: 
     - agent.name -equals SelfHostedAgent
-
+    - Agent.OS -equals Windows_NT
 
 variables:
 - group: secrets   # Linked variable group name
@@ -13,9 +14,9 @@ steps:
 # ----------------------------
 # Step 0: Debug environment variables
 # ----------------------------
-- script: |
-    echo "=== DEBUG: Available Variables ==="
-    set | sort
+- powershell: |
+    Write-Output "=== DEBUG: Available Variables ==="
+    Get-ChildItem Env: | Sort-Object Name | ForEach-Object { Write-Output ("$($_.Name)=$($_.Value)") }
   displayName: 'Debug Environment Variables'
 
 # ----------------------------
@@ -32,21 +33,20 @@ steps:
     versionSpec: '16.x'
   displayName: 'Install Node.js'
 
-- script: |
-    cd frontend
-    echo "Building frontend..."
-    # Uncomment these lines if using React/Vue/Angular
-     npm install
-     npm run build
+- powershell: |
+    Set-Location frontend
+    Write-Output "Building frontend..."
+    npm install
+    npm run build
   displayName: 'Build frontend (if applicable)'
 
+# Example PowerShell step
 - powershell: |
     # Convert hashtable to array of "key=value" strings
     $envVars = @{FOO='bar'; BAZ='qux'}
     $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
-    Write-Host $envArgs
+    Write-Output $envArgs
   displayName: 'Run PowerShell commands'
-  condition: eq( variables['Agent.OS'], 'Windows_NT' )
 
 # ----------------------------
 # Step 3: Deploy frontend to Azure Static Web App
@@ -62,16 +62,13 @@ steps:
 # ----------------------------
 # Step 4: Update backend container environment variables
 # ----------------------------
-# ----------------------------
-# Step 4: Update backend container environment variables
-# ----------------------------
 - task: AzureCLI@2
   inputs:
     azureSubscription: 'MyAzureConnection'    # Replace with your Azure service connection
-    scriptType: 'powershell'
+    scriptType: 'ps'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      Write-Host "Updating backend environment variables..."
+      Write-Output "Updating backend environment variables..."
 
       $ResourceGroup = "placement-tracker-rg"
       $ContainerAppName = "internship-api"
@@ -99,13 +96,11 @@ steps:
           --resource-group $ResourceGroup `
           --env-vars $envArgs
 
-
   displayName: 'Update backend env variables'
 
 # ----------------------------
 # Step 5: Finish
 # ----------------------------
-- script: |
-    Write-Host "Pipeline run completed successfully!"
+- powershell: |
+    Write-Output "Pipeline run completed successfully!"
   displayName: 'Finish'
-  
