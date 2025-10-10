@@ -40,6 +40,14 @@ steps:
      npm run build
   displayName: 'Build frontend (if applicable)'
 
+- powershell: |
+    # Convert hashtable to array of "key=value" strings
+    $envVars = @{FOO='bar'; BAZ='qux'}
+    $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
+    Write-Host $envArgs
+  displayName: 'Run PowerShell commands'
+  condition: eq( variables['Agent.OS'], 'Windows_NT' )
+
 # ----------------------------
 # Step 3: Deploy frontend to Azure Static Web App
 # ----------------------------
