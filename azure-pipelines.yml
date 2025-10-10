@@ -39,14 +39,24 @@ steps:
     Write-Output "Building frontend..."
     npm install
   displayName: 'Build frontend (if applicable)'
+- powershell: |
+    Copy-Item -Path frontend\* -Destination $(Build.ArtifactStagingDirectory) -Recurse
+    Write-Output "Copied static frontend files to staging directory."
+  displayName: 'Copy static frontend files'
 
-# Example PowerShell step
+
+
+
+
 - powershell: |
     # Convert hashtable to array of "key=value" strings
     $envVars = @{FOO='bar'; BAZ='qux'}
     $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
     Write-Output $envArgs
   displayName: 'Run PowerShell commands'
+
+
+
 
 # ----------------------------
 # Step 3: Deploy frontend to Azure Static Web App
@@ -62,38 +72,42 @@ steps:
 # ----------------------------
 # Step 4: Update backend container environment variables
 # ----------------------------
-- task: AzureCLI@2
-  inputs:
-    azureSubscription: 'MyAzureConnection'    # Replace with your Azure service connection
-    scriptType: 'ps'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      Write-Output "Updating backend environment variables..."
+# - task: AzureCLI@2
+#   inputs:
+#     azureSubscription: 'MyAzureConnection'    # Replace with your Azure service connection
+#     scriptType: 'ps'
+#     scriptLocation: 'inlineScript'
+#     inlineScript: |
+#       Write-Output "Updating backend environment variables..."
 
-      $ResourceGroup = "placement-tracker-rg"
-      $ContainerAppName = "internship-api"
+#       $ResourceGroup = "placement-tracker-rg"
+#       $ContainerAppName = "internship-api"
 
-      # Hashtable of environment variables
-      $envVars = @{
-          AZURE_SQL_USER = "$(AZURE_SQL_USER)"
-          AZURE_SQL_PASSWORD = "$(AZURE_SQL_PASSWORD)"
-          AZURE_SQL_SERVER = "$(AZURE_SQL_SERVER)"
-          AZURE_SQL_DATABASE = "$(AZURE_SQL_DATABASE)"
-          OPENAI_API_KEY = "$(OPENAI_API_KEY)"
-          AZURE_STORAGE_CONNECTION_STRING = "$(AZURE_STORAGE_CONNECTION_STRING)"
-          AZURE_STORAGE_ACCOUNT = "$(AZURE_STORAGE_ACCOUNT)"
-          AZURE_STORAGE_KEY = "$(AZURE_STORAGE_KEY)"
-          AZURE_LANGUAGE_KEY = "$(AZURE_LANGUAGE_KEY)"
-          AZURE_LANGUAGE_ENDPOINT = "$(AZURE_LANGUAGE_ENDPOINT)"
-      }
+#       # Hashtable of environment variables
+#       $envVars = @{
+#           AZURE_SQL_USER = "$(AZURE_SQL_USER)"
+#           AZURE_SQL_PASSWORD = "$(AZURE_SQL_PASSWORD)"
+#           AZURE_SQL_SERVER = "$(AZURE_SQL_SERVER)"
+#           AZURE_SQL_DATABASE = "$(AZURE_SQL_DATABASE)"
+#           OPENAI_API_KEY = "$(OPENAI_API_KEY)"
+#           AZURE_STORAGE_CONNECTION_STRING = "$(AZURE_STORAGE_CONNECTION_STRING)"
+#           AZURE_STORAGE_ACCOUNT = "$(AZURE_STORAGE_ACCOUNT)"
+#           AZURE_STORAGE_KEY = "$(AZURE_STORAGE_KEY)"
+#           AZURE_LANGUAGE_KEY = "$(AZURE_LANGUAGE_KEY)"
+#           AZURE_LANGUAGE_ENDPOINT = "$(AZURE_LANGUAGE_ENDPOINT)"
+#       }
 
-      $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
-      $envArgsString = $envArgs -join " "
-      az containerapp update `
-          --name $ContainerAppName `
-          --resource-group $ResourceGroup `
-          --env-vars $envArgsString
-  displayName: 'Update backend env variables'
+#     # Convert hashtable to comma-separated key=value string
+#     $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
+#     $envArgsString = $envArgs -join ","
+
+#     # Update container app environment variables
+#     az containerapp update `
+#       --name $ContainerAppName `
+#       --resource-group $ResourceGroup `
+#       --env-vars $envArgsString
+
+#   displayName: 'Update backend env variables'
 
 # ----------------------------
 # Step 5: Finish
