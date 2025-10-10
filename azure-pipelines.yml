@@ -54,10 +54,13 @@ steps:
 # ----------------------------
 # Step 4: Update backend container environment variables
 # ----------------------------
+# ----------------------------
+# Step 4: Update backend container environment variables
+# ----------------------------
 - task: AzureCLI@2
   inputs:
-    azureSubscription: 'MyAzureConnection'
-    scriptType: 'ps'
+    azureSubscription: 'MyAzureConnection'    # Replace with your Azure service connection
+    scriptType: 'powershell'
     scriptLocation: 'inlineScript'
     inlineScript: |
       Write-Host "Updating backend environment variables..."
@@ -65,6 +68,7 @@ steps:
       $ResourceGroup = "placement-tracker-rg"
       $ContainerAppName = "internship-api"
 
+      # Hashtable of environment variables
       $envVars = @{
           AZURE_SQL_USER = "$(AZURE_SQL_USER)"
           AZURE_SQL_PASSWORD = "$(AZURE_SQL_PASSWORD)"
@@ -78,14 +82,16 @@ steps:
           AZURE_LANGUAGE_ENDPOINT = "$(AZURE_LANGUAGE_ENDPOINT)"
       }
 
-      # Convert hashtable to key=value array
+      # Convert hashtable to array of "key=value" strings
       $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
 
-      # Update container app
+      # Update container app environment variables
       az containerapp update `
           --name $ContainerAppName `
           --resource-group $ResourceGroup `
           --env-vars $envArgs
+
+
   displayName: 'Update backend env variables'
 
 # ----------------------------
