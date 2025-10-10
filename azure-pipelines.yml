@@ -78,6 +78,8 @@ steps:
           AZURE_LANGUAGE_ENDPOINT = "$(AZURE_LANGUAGE_ENDPOINT)"
       } | ConvertTo-Json -Compress
 
+      $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
+
       az containerapp update `
           --name $ContainerAppName `
           --resource-group $ResourceGroup `
