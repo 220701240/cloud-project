@@ -87,12 +87,12 @@ steps:
           AZURE_LANGUAGE_ENDPOINT = "$(AZURE_LANGUAGE_ENDPOINT)"
       }
 
-      $envArgs = $envVars.GetEnumerator() | ForEach-Object { "--env-vars $($_.Key)=$($_.Value)" }
+      $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
       $envArgsString = $envArgs -join " "
       az containerapp update `
           --name $ContainerAppName `
           --resource-group $ResourceGroup `
-          $envArgsString
+          --env-vars $envArgsString
   displayName: 'Update backend env variables'
 
 # ----------------------------
