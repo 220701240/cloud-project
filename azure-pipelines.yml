@@ -57,7 +57,7 @@ steps:
 - task: AzureCLI@2
   inputs:
     azureSubscription: 'MyAzureConnection'          # Replace with actual Azure connection name
-    scriptType: 'bash'
+    scriptType: 'ps'
     scriptLocation: 'inlineScript'
     inlineScript: |
       echo "Updating backend environment variables..."
