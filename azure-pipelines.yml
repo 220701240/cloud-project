@@ -87,15 +87,12 @@ steps:
           AZURE_LANGUAGE_ENDPOINT = "$(AZURE_LANGUAGE_ENDPOINT)"
       }
 
-      # Convert hashtable to array of "key=value" strings
-      $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
-
-      # Update container app environment variables
+      $envArgs = $envVars.GetEnumerator() | ForEach-Object { "--env-vars $($_.Key)=$($_.Value)" }
+      $envArgsString = $envArgs -join " "
       az containerapp update `
           --name $ContainerAppName `
           --resource-group $ResourceGroup `
-          --env-vars $envArgs
-
+          $envArgsString
   displayName: 'Update backend env variables'
 
 # ----------------------------
