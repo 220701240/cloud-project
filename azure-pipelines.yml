@@ -18,6 +18,7 @@ steps:
     Write-Output "=== DEBUG: Available Variables ==="
     Get-ChildItem Env: | Sort-Object Name | ForEach-Object { Write-Output ("$($_.Name)=$($_.Value)") }
   displayName: 'Debug Environment Variables'
+  
 
 # ----------------------------
 # Step 1: Checkout code
@@ -37,7 +38,6 @@ steps:
     Set-Location frontend
     Write-Output "Building frontend..."
     npm install
-    npm run build
   displayName: 'Build frontend (if applicable)'
 
 # Example PowerShell step
