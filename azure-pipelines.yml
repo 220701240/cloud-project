@@ -1,22 +1,80 @@
 trigger:
-- main
+- main   # Trigger pipeline on push to main branch
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: ubuntu-latest
+
+variables:
+- group: secrets   # Variable group with AZURE_STATIC_WEB_APPS_API_TOKEN, BACKEND_API_URL, DB_CONNECTION, OPENAI_API_KEY
 
 steps:
+# ----------------------------
+# Step 1: Checkout code
+# ----------------------------
+- task: Checkout@1
+  displayName: 'Checkout code'
+
+# ----------------------------
+# Step 2: Optional - Build frontend (React/Vue/Angular)
+# ----------------------------
 - task: NodeTool@0
   inputs:
-    versionSpec: '18.x'
+    versionSpec: '16.x'
+  displayName: 'Install Node.js'
 
 - script: |
-    npm install
-    npm run build
-  displayName: 'Install dependencies and build'
+    cd frontend
+    echo "Building frontend..."
+    # Uncomment these lines if using React/Vue/Angular
+    # npm install
+    # npm run build
+  displayName: 'Build frontend (if applicable)'
 
-- task: AzureWebApp@1
+# ----------------------------
+# Step 3: Deploy frontend to Azure Static Web App
+# ----------------------------
+- task: AzureStaticWebApp@0
   inputs:
-    azureSubscription: '<YOUR-AZURE-SUBSCRIPTION>'
-    appType: 'webAppLinux'
-    appName: '<YOUR-APP-SERVICE-NAME>'
-    package: '$(System.DefaultWorkingDirectory)'
+    app_location: 'frontend'                         # Frontend folder
+    api_location: ''                                 # Backend is separate
+    output_location: ''                              # Blank for static HTML
+    azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_API_TOKEN)
+  displayName: 'Deploy frontend'
+
+# ----------------------------
+# Step 4: Update backend container environment variables
+# ----------------------------
+- task: AzureCLI@2
+  inputs:
+    azureSubscription: 'MyAzureConnection'          # Azure DevOps service connection
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      echo "Updating backend environment variables..."
+      
+      RESOURCE_GROUP="placement-tracker-rg"               # Replace with your resource group
+      CONTAINER_APP_NAME="internship-api"          # Replace with your container app name
+
+      # Update environment variables
+      az containerapp update \
+        --name $CONTAINER_APP_NAME \
+        --resource-group $RESOURCE_GROUP \
+        --env-vars \
+          AZURE_SQL_USER=$(AZURE_SQL_USER) \
+          AZURE_SQL_PASSWORD=$(AZURE_SQL_PASSWORD) \
+          AZURE_SQL_SERVER=$(AZURE_SQL_SERVER) \
+          AZURE_SQL_DATABASE=$(AZURE_SQL_DATABASE) \
+          OPENAI_API_KEY=$(OPENAI_API_KEY) \
+          AZURE_STORAGE_CONNECTION_STRING=$(AZURE_STORAGE_CONNECTION_STRING) \
+          AZURE_STORAGE_ACCOUNT=$(AZURE_STORAGE_ACCOUNT) \
+          AZURE_STORAGE_KEY=$(AZURE_STORAGE_KEY) \
+          AZURE_LANGUAGE_KEY=$(AZURE_LANGUAGE_KEY) \
+          AZURE_LANGUAGE_ENDPOINT=$(AZURE_LANGUAGE_ENDPOINT)
+  displayName: 'Update backend env variables'
+
+# ----------------------------
+# Step 5: Optional - Notifications / logging
+# ----------------------------
+- script: |
+    echo "Pipeline run completed successfully!"
+  displayName: 'Finish'
