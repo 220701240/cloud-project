@@ -36,8 +36,8 @@ steps:
     cd frontend
     echo "Building frontend..."
     # Uncomment these lines if using React/Vue/Angular
-    # npm install
-    # npm run build
+     npm install
+     npm run build
   displayName: 'Build frontend (if applicable)'
 
 # ----------------------------
