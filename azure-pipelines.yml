@@ -5,13 +5,21 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-- group: secrets   # Variable group with AZURE_STATIC_WEB_APPS_API_TOKEN, BACKEND_API_URL, DB_CONNECTION, OPENAI_API_KEY
+- group: secrets   # Linked variable group name
 
 steps:
 # ----------------------------
+# Step 0: Debug environment variables
+# ----------------------------
+- script: |
+    echo "=== DEBUG: Available Variables ==="
+    printenv | sort
+  displayName: 'Debug Environment Variables'
+
+# ----------------------------
 # Step 1: Checkout code
 # ----------------------------
-- task: Checkout@1
+- checkout: self
   displayName: 'Checkout code'
 
 # ----------------------------
@@ -46,16 +54,15 @@ steps:
 # ----------------------------
 - task: AzureCLI@2
   inputs:
-    azureSubscription: 'MyAzureConnection'          # Azure DevOps service connection
+    azureSubscription: 'MyAzureConnection'          # Replace with actual Azure connection name
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
       echo "Updating backend environment variables..."
       
-      RESOURCE_GROUP="placement-tracker-rg"               # Replace with your resource group
-      CONTAINER_APP_NAME="internship-api"          # Replace with your container app name
+      RESOURCE_GROUP="placement-tracker-rg"
+      CONTAINER_APP_NAME="internship-api"
 
-      # Update environment variables
       az containerapp update \
         --name $CONTAINER_APP_NAME \
         --resource-group $RESOURCE_GROUP \
@@ -73,7 +80,7 @@ steps:
   displayName: 'Update backend env variables'
 
 # ----------------------------
-# Step 5: Optional - Notifications / logging
+# Step 5: Finish
 # ----------------------------
 - script: |
     echo "Pipeline run completed successfully!"
