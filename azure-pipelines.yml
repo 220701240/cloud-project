@@ -57,7 +57,7 @@ steps:
 - task: AzureCLI@2
   inputs:
     azureSubscription: 'MyAzureConnection'          # Replace with actual Azure connection name
-    scriptType: 'pscore'
+    scriptType: 'powershell'
     scriptLocation: 'inlineScript'
     inlineScript: |
       Write-Host "Updating backend environment variables..."
