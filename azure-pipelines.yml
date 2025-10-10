@@ -15,7 +15,7 @@ steps:
 # ----------------------------
 - script: |
     echo "=== DEBUG: Available Variables ==="
-    printenv | sort
+    set | sort
   displayName: 'Debug Environment Variables'
 
 # ----------------------------
