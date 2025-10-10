@@ -43,13 +43,13 @@ steps:
 # ----------------------------
 # Step 3: Deploy frontend to Azure Static Web App
 # ----------------------------
-- task: AzureStaticWebApp@0
-  inputs:
-    app_location: 'frontend'                         # Frontend folder
-    api_location: ''                                 # Backend is separate
-    output_location: ''                              # Blank for static HTML
-    azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_API_TOKEN)
-  displayName: 'Deploy frontend'
+# - task: AzureStaticWebApp@0
+#   inputs:
+#     app_location: 'frontend'                         # Frontend folder
+#     api_location: ''                                 # Backend is separate
+#     output_location: ''                              # Blank for static HTML
+#     azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_API_TOKEN)
+#   displayName: 'Deploy frontend'
 
 # ----------------------------
 # Step 4: Update backend container environment variables
