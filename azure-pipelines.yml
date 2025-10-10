@@ -1,117 +1,64 @@
 trigger:
-- main   # Trigger pipeline on push to main branch
+- main
 
 pool:
-  name: Default   # your self-hosted agent pool
-  demands: 
+  name: Default
+  demands:
     - agent.name -equals SelfHostedAgent
     - Agent.OS -equals Windows_NT
 
 variables:
-- group: secrets   # Linked variable group name
+- group: secrets
 
 steps:
-# ----------------------------
-# Step 0: Debug environment variables
-# ----------------------------
+- checkout: self
+  displayName: 'Checkout code'
+
+# Optional: Debug environment variables
 - powershell: |
     Write-Output "=== DEBUG: Available Variables ==="
     Get-ChildItem Env: | Sort-Object Name | ForEach-Object { Write-Output ("$($_.Name)=$($_.Value)") }
   displayName: 'Debug Environment Variables'
-  
 
-# ----------------------------
-# Step 1: Checkout code
-# ----------------------------
-- checkout: self
-  displayName: 'Checkout code'
-
-# ----------------------------
-# Step 2: Optional - Build frontend (React/Vue/Angular)
-# ----------------------------
-- task: NodeTool@0
-  inputs:
-    versionSpec: '16.x'
-  displayName: 'Install Node.js'
-
-- powershell: |
-    Set-Location frontend
-    Write-Output "Building frontend..."
-    npm install
-  displayName: 'Build frontend (if applicable)'
-- powershell: |
-    Copy-Item -Path frontend\* -Destination $(Build.ArtifactStagingDirectory) -Recurse
-    Write-Output "Copied static frontend files to staging directory."
-  displayName: 'Copy static frontend files'
-
-
-
-
-
-- powershell: |
-    # Convert hashtable to array of "key=value" strings
-    $envVars = @{FOO='bar'; BAZ='qux'}
-    $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
-    Write-Output $envArgs
-  displayName: 'Run PowerShell commands'
-
-
-
-
-# ----------------------------
-# Step 3: Deploy frontend to Azure Static Web App
-# ----------------------------
+# Optional: Deploy frontend to Azure Static Web Apps (uncomment if you want CI/CD)
 # - task: AzureStaticWebApp@0
 #   inputs:
-#     app_location: 'frontend'                         # Frontend folder
-#     api_location: ''                                 # Backend is separate
-#     output_location: ''                              # Blank for static HTML
+#     app_location: 'frontend'
+#     api_location: ''
+#     output_location: ''
 #     azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_API_TOKEN)
 #   displayName: 'Deploy frontend'
 
-# ----------------------------
-# Step 4: Update backend container environment variables
-# ----------------------------
-# - task: AzureCLI@2
-#   inputs:
-#     azureSubscription: 'MyAzureConnection'    # Replace with your Azure service connection
-#     scriptType: 'ps'
-#     scriptLocation: 'inlineScript'
-#     inlineScript: |
-#       Write-Output "Updating backend environment variables..."
+# Optional: Update backend container app environment variables
+- task: AzureCLI@2
+  inputs:
+    azureSubscription: 'MyAzureConnection'
+    scriptType: 'ps'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      Write-Output "Updating backend environment variables..."
+      $ResourceGroup = "placement-tracker-rg"
+      $ContainerAppName = "internship-api"
+      $envVars = @{
+          AZURE_SQL_USER = "$(AZURE_SQL_USER)"
+          AZURE_SQL_PASSWORD = "$(AZURE_SQL_PASSWORD)"
+          AZURE_SQL_SERVER = "$(AZURE_SQL_SERVER)"
+          AZURE_SQL_DATABASE = "$(AZURE_SQL_DATABASE)"
+          OPENAI_API_KEY = "$(OPENAI_API_KEY)"
+          AZURE_STORAGE_CONNECTION_STRING = "$(AZURE_STORAGE_CONNECTION_STRING)"
+          AZURE_STORAGE_ACCOUNT = "$(AZURE_STORAGE_ACCOUNT)"
+          AZURE_STORAGE_KEY = "$(AZURE_STORAGE_KEY)"
+          AZURE_LANGUAGE_KEY = "$(AZURE_LANGUAGE_KEY)"
+          AZURE_LANGUAGE_ENDPOINT = "$(AZURE_LANGUAGE_ENDPOINT)"
+      }
+      $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
+      $envArgsString = $envArgs -join ","
+      az containerapp update `
+        --name $ContainerAppName `
+        --resource-group $ResourceGroup `
+        --env-vars $envArgsString
+  displayName: 'Update backend env variables'
 
-#       $ResourceGroup = "placement-tracker-rg"
-#       $ContainerAppName = "internship-api"
-
-#       # Hashtable of environment variables
-#       $envVars = @{
-#           AZURE_SQL_USER = "$(AZURE_SQL_USER)"
-#           AZURE_SQL_PASSWORD = "$(AZURE_SQL_PASSWORD)"
-#           AZURE_SQL_SERVER = "$(AZURE_SQL_SERVER)"
-#           AZURE_SQL_DATABASE = "$(AZURE_SQL_DATABASE)"
-#           OPENAI_API_KEY = "$(OPENAI_API_KEY)"
-#           AZURE_STORAGE_CONNECTION_STRING = "$(AZURE_STORAGE_CONNECTION_STRING)"
-#           AZURE_STORAGE_ACCOUNT = "$(AZURE_STORAGE_ACCOUNT)"
-#           AZURE_STORAGE_KEY = "$(AZURE_STORAGE_KEY)"
-#           AZURE_LANGUAGE_KEY = "$(AZURE_LANGUAGE_KEY)"
-#           AZURE_LANGUAGE_ENDPOINT = "$(AZURE_LANGUAGE_ENDPOINT)"
-#       }
-
-#     # Convert hashtable to comma-separated key=value string
-#     $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
-#     $envArgsString = $envArgs -join ","
-
-#     # Update container app environment variables
-#     az containerapp update `
-#       --name $ContainerAppName `
-#       --resource-group $ResourceGroup `
-#       --env-vars $envArgsString
-
-#   displayName: 'Update backend env variables'
-
-# ----------------------------
-# Step 5: Finish
-# ----------------------------
 - powershell: |
     Write-Output "Pipeline run completed successfully!"
   displayName: 'Finish'
