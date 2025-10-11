@@ -1,5 +1,6 @@
 trigger:
 - main  
+
 pool:
   name: Default   
   demands: 
@@ -24,11 +25,10 @@ steps:
     Write-Output "=== DEBUG: Available Variables ==="
     Get-ChildItem Env: | Sort-Object Name | ForEach-Object { Write-Output ("$($_.Name)=$($_.Value)") }
   displayName: 'Debug Environment Variables'
-  
-
 
 - checkout: self
   displayName: 'Checkout code'
+
 - task: NodeTool@0
   inputs:
     versionSpec: '16.x'
@@ -38,31 +38,47 @@ steps:
     Set-Location frontend
     Write-Output "Building frontend..."
     npm install
-    # No build step needed for plain HTML/CSS/JS
     Write-Output "No build step required for static files."
   displayName: 'Prepare frontend (static HTML/CSS)'
+
 - powershell: |
     Copy-Item -Path frontend\* -Destination $(Build.ArtifactStagingDirectory) -Recurse
     Write-Output "Copied static frontend files to staging directory."
   displayName: 'Copy static frontend files'
 
-
-- powershell: |
-    # Convert hashtable to array of "key=value" strings
-    $envVars = @{FOO='bar'; BAZ='qux'}
-    $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
-    Write-Output $envArgs
-  displayName: 'Run PowerShell commands'
-
-
-- task: AzureStaticWebApp@0
+- task: AzureCLI@2
   inputs:
-    app_location: 'frontend'                        
-    api_location: ''                                
-    output_location: ''                             
-    azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_API_TOKEN)
-  displayName: 'Deploy frontend'
+    azureSubscription: 'MyAzureConnection'
+    scriptType: 'ps'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      Write-Output "Logging into Azure Container Registry..."
+      az acr login --name cloudprojectacr
 
+      Write-Output "Building backend Docker image..."
+      docker build -t cloudprojectacr.azurecr.io/internship-api:latest ./backend
+
+      Write-Output "Pushing Docker image to ACR..."
+      docker push cloudprojectacr.azurecr.io/internship-api:latest
+  displayName: 'Build & Push Docker image to ACR'
+
+- task: AzureCLI@2
+  inputs:
+    azureSubscription: 'MyAzureConnection'    
+    scriptType: 'ps'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      Write-Output "Deploying backend container to Azure Container App..."
+
+      $ResourceGroup = "placement-tracker-rg"
+      $ContainerAppName = "internship-api"
+      $ACR = "cloudprojectacr.azurecr.io"
+
+      az containerapp update `
+        --name $ContainerAppName `
+        --resource-group $ResourceGroup `
+        --image "$ACR/internship-api:latest"
+  displayName: 'Deploy backend to Container App'
 
 - task: AzureCLI@2
   inputs:
@@ -75,7 +91,6 @@ steps:
       $ResourceGroup = "placement-tracker-rg"
       $ContainerAppName = "internship-api"
 
-      # Hashtable of environment variables
       $envVars = @{
           AZURE_SQL_USER = "$(AZURE_SQL_USER)"
           AZURE_SQL_PASSWORD = "$(AZURE_SQL_PASSWORD)"
@@ -89,15 +104,22 @@ steps:
           AZURE_LANGUAGE_ENDPOINT = "$(AZURE_LANGUAGE_ENDPOINT)"
       }
 
-    
       $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
       $envArgsString = $envArgs -join ","
       az containerapp update `
         --name $ContainerAppName `
         --resource-group $ResourceGroup `
         --set-env-vars $envArgsString
-
   displayName: 'Update backend env variables'
+
+
+- task: AzureStaticWebApp@0
+  inputs:
+    app_location: 'frontend'                        
+    api_location: ''                                
+    output_location: ''                             
+    azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_API_TOKEN)
+  displayName: 'Deploy frontend'
 
 - powershell: |
     Write-Output "Pipeline run completed successfully!"
