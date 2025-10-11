@@ -1,17 +1,16 @@
 trigger:
-- main   # Trigger pipeline on push to main branch
-
+- main  
 pool:
-  name: Default   # your self-hosted agent pool
+  name: Default   
   demands: 
     - agent.name -equals SelfHostedAgent
     - Agent.OS -equals Windows_NT
 
 variables:
-- group: secrets   # Linked variable group name
+- group: secrets   
 
 steps:
-# Step: Register Microsoft.App resource provider (required for container apps)
+
 - task: AzureCLI@2
   inputs:
     azureSubscription: 'MyAzureConnection'
