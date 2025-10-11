@@ -1,44 +1,82 @@
 trigger:
-- main
+- main   # Trigger pipeline on push to main branch
 
 pool:
-  name: Default
-  demands:
+  name: Default   # your self-hosted agent pool
+  demands: 
     - agent.name -equals SelfHostedAgent
     - Agent.OS -equals Windows_NT
 
 variables:
-- group: secrets
+- group: secrets   # Linked variable group name
 
 steps:
-- checkout: self
-  displayName: 'Checkout code'
-
-# Optional: Debug environment variables
-- powershell: |
-    Write-Output "=== DEBUG: Available Variables ==="
-    Get-ChildItem Env: | Sort-Object Name | ForEach-Object { Write-Output ("$($_.Name)=$($_.Value)") }
-  displayName: 'Debug Environment Variables'
-
-# Optional: Deploy frontend to Azure Static Web Apps (uncomment if you want CI/CD)
-# - task: AzureStaticWebApp@0
-#   inputs:
-#     app_location: 'frontend'
-#     api_location: ''
-#     output_location: ''
-#     azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_API_TOKEN)
-#   displayName: 'Deploy frontend'
-
-# Optional: Update backend container app environment variables
+# Step: Register Microsoft.App resource provider (required for container apps)
 - task: AzureCLI@2
   inputs:
     azureSubscription: 'MyAzureConnection'
     scriptType: 'ps'
     scriptLocation: 'inlineScript'
     inlineScript: |
+      az provider register -n Microsoft.App --wait
+  displayName: 'Register Microsoft.App resource provider'
+
+- powershell: |
+    Write-Output "=== DEBUG: Available Variables ==="
+    Get-ChildItem Env: | Sort-Object Name | ForEach-Object { Write-Output ("$($_.Name)=$($_.Value)") }
+  displayName: 'Debug Environment Variables'
+  
+
+
+- checkout: self
+  displayName: 'Checkout code'
+- task: NodeTool@0
+  inputs:
+    versionSpec: '16.x'
+  displayName: 'Install Node.js'
+
+- powershell: |
+    Set-Location frontend
+    Write-Output "Building frontend..."
+    npm install
+    # No build step needed for plain HTML/CSS/JS
+    Write-Output "No build step required for static files."
+  displayName: 'Prepare frontend (static HTML/CSS)'
+- powershell: |
+    Copy-Item -Path frontend\* -Destination $(Build.ArtifactStagingDirectory) -Recurse
+    Write-Output "Copied static frontend files to staging directory."
+  displayName: 'Copy static frontend files'
+
+
+- powershell: |
+    # Convert hashtable to array of "key=value" strings
+    $envVars = @{FOO='bar'; BAZ='qux'}
+    $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
+    Write-Output $envArgs
+  displayName: 'Run PowerShell commands'
+
+
+- task: AzureStaticWebApp@0
+  inputs:
+    app_location: 'frontend'                        
+    api_location: ''                                
+    output_location: ''                             
+    azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_API_TOKEN)
+  displayName: 'Deploy frontend'
+
+
+- task: AzureCLI@2
+  inputs:
+    azureSubscription: 'MyAzureConnection'    
+    scriptType: 'ps'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
       Write-Output "Updating backend environment variables..."
+
       $ResourceGroup = "placement-tracker-rg"
       $ContainerAppName = "internship-api"
+
+      # Hashtable of environment variables
       $envVars = @{
           AZURE_SQL_USER = "$(AZURE_SQL_USER)"
           AZURE_SQL_PASSWORD = "$(AZURE_SQL_PASSWORD)"
@@ -51,12 +89,15 @@ steps:
           AZURE_LANGUAGE_KEY = "$(AZURE_LANGUAGE_KEY)"
           AZURE_LANGUAGE_ENDPOINT = "$(AZURE_LANGUAGE_ENDPOINT)"
       }
+
+    
       $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
       $envArgsString = $envArgs -join ","
       az containerapp update `
         --name $ContainerAppName `
         --resource-group $ResourceGroup `
         --set-env-vars $envArgsString
+
   displayName: 'Update backend env variables'
 
 - powershell: |
