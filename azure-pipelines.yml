@@ -1,17 +1,59 @@
 trigger:
-- main  
+- main   # Trigger pipeline on push to main branch
 
 pool:
-  name: Default   
+  name: Default   # your self-hosted agent pool
   demands: 
     - agent.name -equals SelfHostedAgent
     - Agent.OS -equals Windows_NT
 
 variables:
-- group: secrets   
+- group: secrets   # Linked variable group name
 
 steps:
+# Step: Build Docker image
+- task: Docker@2
+  displayName: 'Build Docker image'
+  inputs:
+    command: build
+    repository: $(ACR_NAME).azurecr.io/internship-api
+    dockerfile: internship-api/Dockerfile
+    buildContext: internship-api
+    tags: latest
 
+# Step: Login to Azure Container Registry
+- task: Docker@2
+  displayName: 'Login to ACR'
+  inputs:
+    command: login
+    containerRegistry: $(ACR_SERVICE_CONNECTION)
+
+# Step: Push Docker image to ACR
+- task: Docker@2
+  displayName: 'Push Docker image to ACR'
+  inputs:
+    command: push
+    repository: $(ACR_NAME).azurecr.io/internship-api
+    tags: latest
+
+# Optional: Deploy to Azure Web App for Containers
+# - task: AzureWebAppContainer@1
+#   inputs:
+#     azureSubscription: 'MyAzureConnection'
+#     appName: 'your-webapp-name'
+#     imageName: '$(ACR_NAME)/internship-api:latest'
+#   displayName: 'Deploy to Azure Web App'
+
+# Optional: Deploy to Azure Container Instance
+# - task: AzureCLI@2
+#   inputs:
+#     azureSubscription: 'MyAzureConnection'
+#     scriptType: 'ps'
+#     scriptLocation: 'inlineScript'
+#     inlineScript: |
+#       az container create --resource-group placement-tracker-rg --name internship-api-instance --image $(ACR_NAME)/internship-api:latest --registry-login-server $(ACR_NAME).azurecr.io --registry-username $(ACR_USERNAME) --registry-password $(ACR_PASSWORD)
+#   displayName: 'Deploy to Azure Container Instance'
+# Step: Register Microsoft.App resource provider (required for container apps)
 - task: AzureCLI@2
   inputs:
     azureSubscription: 'MyAzureConnection'
@@ -20,15 +62,24 @@ steps:
     inlineScript: |
       az provider register -n Microsoft.App --wait
   displayName: 'Register Microsoft.App resource provider'
-
+# ----------------------------
+# Step 0: Debug environment variables
+# ----------------------------
 - powershell: |
     Write-Output "=== DEBUG: Available Variables ==="
     Get-ChildItem Env: | Sort-Object Name | ForEach-Object { Write-Output ("$($_.Name)=$($_.Value)") }
   displayName: 'Debug Environment Variables'
+  
 
+# ----------------------------
+# Step 1: Checkout code
+# ----------------------------
 - checkout: self
   displayName: 'Checkout code'
 
+# ----------------------------
+# Step 2: Optional - Build frontend (React/Vue/Angular)
+# ----------------------------
 - task: NodeTool@0
   inputs:
     versionSpec: '16.x'
@@ -38,51 +89,76 @@ steps:
     Set-Location frontend
     Write-Output "Building frontend..."
     npm install
+    # No build step needed for plain HTML/CSS/JS
     Write-Output "No build step required for static files."
   displayName: 'Prepare frontend (static HTML/CSS)'
 
+# ----------------------------
+# Security: OWASP ZAP baseline scan against local static server
+# ----------------------------
+- task: PowerShell@2
+  displayName: 'Start local static server for frontend on :8000'
+  inputs:
+    targetType: 'inline'
+    script: |
+      Write-Output "Installing http-server..."
+      npm install -g http-server
+      Write-Output "Starting http-server on http://localhost:8000 serving ./frontend"
+      # Use npx to ensure path resolution is reliable on the agent
+      Start-Process -FilePath "npx" -ArgumentList "http-server frontend -p 8000" -WindowStyle Hidden
+      Write-Output "Waiting for server to be ready..."
+      $max=30
+      for($i=0; $i -lt $max; $i++){
+        try {
+          $res = Invoke-WebRequest -Uri http://localhost:8000 -UseBasicParsing -TimeoutSec 2
+          if ($res.StatusCode -ge 200) { Write-Output "Server ready"; break }
+        } catch { Start-Sleep -Seconds 1 }
+      }
+
+- task: PowerShell@2
+  displayName: 'Run OWASP ZAP baseline scan'
+  inputs:
+    targetType: 'inline'
+    script: |
+      docker pull owasp/zap2docker-stable
+      docker run --rm -v "$(System.DefaultWorkingDirectory):/zap/wrk" owasp/zap2docker-stable \
+        zap-baseline.py -t http://host.docker.internal:8000 -r zap-report.html -I -m 5
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish ZAP report artifact'
+  inputs:
+    PathtoPublish: '$(System.DefaultWorkingDirectory)/zap-report.html'
+    ArtifactName: 'zap-report'
+    publishLocation: 'Container'
+
+
+
+
+# Example PowerShell step
 - powershell: |
-    Copy-Item -Path frontend\* -Destination $(Build.ArtifactStagingDirectory) -Recurse
-    Write-Output "Copied static frontend files to staging directory."
-  displayName: 'Copy static frontend files'
+    # Convert hashtable to array of "key=value" strings
+    $envVars = @{FOO='bar'; BAZ='qux'}
+    $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
+    Write-Output $envArgs
+  displayName: 'Run PowerShell commands'
 
+# ----------------------------
+# Step 3: Deploy frontend to Azure Static Web App
+# ----------------------------
+# - task: AzureStaticWebApp@0
+#   inputs:
+#     app_location: 'frontend'                         # Frontend folder
+#     api_location: ''                                 # Backend is separate
+#     output_location: ''                              # Blank for static HTML
+#     azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_API_TOKEN)
+#   displayName: 'Deploy frontend'
+
+# ----------------------------
+# Step 4: Update backend container environment variables
+# ----------------------------
 - task: AzureCLI@2
   inputs:
-    azureSubscription: 'MyAzureConnection'
-    scriptType: 'ps'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      Write-Output "Logging into Azure Container Registry..."
-      az acr login --name cloudprojectacr
-
-      Write-Output "Building backend Docker image..."
-      docker build -t cloudprojectacr.azurecr.io/internship-api:latest ./backend
-
-      Write-Output "Pushing Docker image to ACR..."
-      docker push cloudprojectacr.azurecr.io/internship-api:latest
-  displayName: 'Build & Push Docker image to ACR'
-
-- task: AzureCLI@2
-  inputs:
-    azureSubscription: 'MyAzureConnection'    
-    scriptType: 'ps'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      Write-Output "Deploying backend container to Azure Container App..."
-
-      $ResourceGroup = "placement-tracker-rg"
-      $ContainerAppName = "internship-api"
-      $ACR = "cloudprojectacr.azurecr.io"
-
-      az containerapp update `
-        --name $ContainerAppName `
-        --resource-group $ResourceGroup `
-        --image "$ACR/internship-api:latest"
-  displayName: 'Deploy backend to Container App'
-
-- task: AzureCLI@2
-  inputs:
-    azureSubscription: 'MyAzureConnection'    
+    azureSubscription: 'MyAzureConnection'    # Replace with your Azure service connection
     scriptType: 'ps'
     scriptLocation: 'inlineScript'
     inlineScript: |
@@ -91,6 +167,7 @@ steps:
       $ResourceGroup = "placement-tracker-rg"
       $ContainerAppName = "internship-api"
 
+      # Hashtable of environment variables
       $envVars = @{
           AZURE_SQL_USER = "$(AZURE_SQL_USER)"
           AZURE_SQL_PASSWORD = "$(AZURE_SQL_PASSWORD)"
@@ -102,25 +179,27 @@ steps:
           AZURE_STORAGE_KEY = "$(AZURE_STORAGE_KEY)"
           AZURE_LANGUAGE_KEY = "$(AZURE_LANGUAGE_KEY)"
           AZURE_LANGUAGE_ENDPOINT = "$(AZURE_LANGUAGE_ENDPOINT)"
+          # Monitoring and CORS
+          APPINSIGHTS_INSTRUMENTATIONKEY = "$(APPINSIGHTS_INSTRUMENTATIONKEY)"
+          FRONTEND_ORIGIN = "$(FRONTEND_ORIGIN)"
+          # Security
+          JWT_SECRET = "$(JWT_SECRET)"
       }
 
+      # Build array of space-separated key=value args
       $envArgs = $envVars.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }
-      $envArgsString = $envArgs -join ","
+
+      # Update container app environment variables (pass each key=value as separate arg)
       az containerapp update `
         --name $ContainerAppName `
         --resource-group $ResourceGroup `
-        --set-env-vars $envArgsString
+        --set-env-vars $envArgs
+
   displayName: 'Update backend env variables'
 
-
-- task: AzureStaticWebApp@0
-  inputs:
-    app_location: 'frontend'                        
-    api_location: ''                                
-    output_location: ''                             
-    azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_API_TOKEN)
-  displayName: 'Deploy frontend'
-
+# ----------------------------
+# Step 5: Finish
+# ----------------------------
 - powershell: |
     Write-Output "Pipeline run completed successfully!"
   displayName: 'Finish'
