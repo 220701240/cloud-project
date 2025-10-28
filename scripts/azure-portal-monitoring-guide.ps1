@@ -127,6 +127,6 @@ Write-Output "3. Try: https://internship-api.gentleforest-68343e46.centralindia.
 Write-Output "4. Wait 2-3 minutes, then check Azure Portal metrics"
 Write-Output ""
 
-Write-Output "✅ AZURE PORTAL MONITORING GUIDE COMPLETE!"
+Write-Output "AZURE PORTAL MONITORING GUIDE COMPLETE!"
 Write-Output ""
-Write-Output "💡 TIP: Bookmark the resource group page for quick access!"
+Write-Output "TIP: Bookmark the resource group page for quick access!"
