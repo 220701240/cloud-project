@@ -1,0 +1,19 @@
+# Use minimal package.json with only essential dependencies
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy minimal package.json first
+COPY package-minimal.json ./package.json
+
+# Install dependencies
+RUN npm install --production
+
+# Copy minimal app
+COPY index-minimal.js ./index.js
+
+# Expose port
+EXPOSE 3000
+
+# Start app
+CMD ["node", "index.js"]
