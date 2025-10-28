@@ -33,6 +33,46 @@ steps:
       $(IMAGE_TAG)
       $(Build.BuildId)
 
+# Step: Deploy new image to Azure Container Apps
+- task: AzureCLI@2
+  displayName: 'Update Container App image to $(Build.BuildId)'
+  inputs:
+    azureSubscription: 'MyAzureConnection'
+    scriptType: 'ps'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      $ResourceGroup = "placement-tracker-rg"
+      $ContainerAppName = "internship-api"
+      $Image = "$(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(Build.BuildId)"
+
+      Write-Output "Ensuring Container App can pull from ACR (if creds provided) ..."
+      if ($env:ACR_USERNAME -and $env:ACR_PASSWORD) {
+        az containerapp registry set `
+          --name $ContainerAppName `
+          --resource-group $ResourceGroup `
+          --server $(ACR_LOGIN_SERVER) `
+          --username $(ACR_USERNAME) `
+          --password $(ACR_PASSWORD) | Out-Null
+      } else {
+        Write-Output "Skipping registry set: ACR_USERNAME/ACR_PASSWORD not provided (assuming already configured)."
+      }
+
+      Write-Output "Updating image to $Image ..."
+      az containerapp update `
+        --name $ContainerAppName `
+        --resource-group $ResourceGroup `
+        --image $Image |
+        Out-Null
+
+      Write-Output "Active revisions:"
+      az containerapp revision list `
+        --name $ContainerAppName `
+        --resource-group $ResourceGroup `
+        --query "[?properties.active==\`true\`].[name,properties.createdTime,properties.template.containers[0].image]" -o table
+
+      $fqdn = az containerapp show --name $ContainerAppName --resource-group $ResourceGroup --query properties.configuration.ingress.fqdn -o tsv
+      if ($fqdn) { Write-Output "Container App FQDN: https://$fqdn" }
+
 # Optional: Deploy to Azure Web App for Containers
 # - task: AzureWebAppContainer@1
 #   inputs:
@@ -50,15 +90,6 @@ steps:
 #     inlineScript: |
 #       az container create --resource-group placement-tracker-rg --name internship-api-instance --image $(ACR_NAME)/internship-api:latest --registry-login-server $(ACR_NAME).azurecr.io --registry-username $(ACR_USERNAME) --registry-password $(ACR_PASSWORD)
 #   displayName: 'Deploy to Azure Container Instance'
-# Step: Register Microsoft.App resource provider (required for container apps)
-- task: AzureCLI@2
-  inputs:
-    azureSubscription: 'MyAzureConnection'
-    scriptType: 'ps'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      az provider register -n Microsoft.App --wait
-  displayName: 'Register Microsoft.App resource provider'
 # ----------------------------
 # Step 0: Debug environment variables
 # ----------------------------
