@@ -83,14 +83,15 @@ try {
         }
         
         Write-Output ""
-        Write-Output "📊 Check telemetry in Azure Portal:"
-        Write-Output "   1. Go to Application Insights → $AppInsightsName"
+        Write-Output "Check telemetry in Azure Portal:"
+        Write-Output "   1. Go to Application Insights -> $AppInsightsName"
         Write-Output "   2. Click 'Live Metrics' to see real-time data"
         Write-Output "   3. Check 'Metrics' for request counts and response times"
         Write-Output "   4. View 'Logs' for detailed request information"
     }
 } catch {
     Write-Warning "Failed to test application: $($_.Exception.Message)"
+}
 }
 
 Write-Output ""
@@ -114,6 +115,6 @@ try {
 Write-Output ""
 Write-Output "=== Verification Complete ==="
 Write-Output "Next steps:"
-Write-Output "1. Check Azure Portal → Application Insights → Live Metrics"
+Write-Output "1. Check Azure Portal -> Application Insights -> Live Metrics"
 Write-Output "2. Create alerts using: .\scripts\create-appinsights-alert.ps1"
 Write-Output "3. Set up dashboard in Azure Portal or Power BI"
