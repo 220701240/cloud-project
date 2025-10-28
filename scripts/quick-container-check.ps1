@@ -23,7 +23,7 @@ if ($fqdn) {
 # Get active revisions with proper escaping
 Write-Output ""
 Write-Output "3. Active Revisions:"
-az containerapp revision list --name $ContainerAppName --resource-group $ResourceGroup --query "[?properties.active==\`true\`].[name,properties.createdTime,properties.template.containers[0].image]" -o table
+az containerapp revision list --name $ContainerAppName --resource-group $ResourceGroup --query "[?properties.active==``true``].[name,properties.createdTime,properties.template.containers[0].image]" -o table
 
 # Get latest revision health
 Write-Output ""
