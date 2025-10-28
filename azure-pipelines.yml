@@ -4,37 +4,34 @@ trigger:
 pool:
   name: Default   # your self-hosted agent pool
   demands: 
-    - agent.name -equals SelfHostedAgent
+    - Agent.Name -equals SelfHostedAgent
     - Agent.OS -equals Windows_NT
 
 variables:
 - group: secrets   # Linked variable group name
+# Normalize image naming to avoid tag mismatch during push
+- name: ACR_LOGIN_SERVER
+  value: $(ACR_NAME).azurecr.io
+- name: IMAGE_NAME
+  value: internship-api
+- name: IMAGE_REPO
+  value: $(ACR_LOGIN_SERVER)/$(IMAGE_NAME)
+- name: IMAGE_TAG
+  value: latest
 
 steps:
-# Step: Build Docker image
+# Step: Build and push Docker image (uses ACR service connection to prefix login server)
 - task: Docker@2
-  displayName: 'Build Docker image'
+  displayName: 'Build and push Docker image to ACR'
   inputs:
-    command: build
-    repository: $(ACR_NAME).azurecr.io/internship-api
+    command: buildAndPush
+    containerRegistry: $(ACR_SERVICE_CONNECTION)
+    repository: $(IMAGE_NAME)         # Do not include login server when using containerRegistry
     dockerfile: internship-api/Dockerfile
     buildContext: internship-api
-    tags: latest
-
-# Step: Login to Azure Container Registry
-- task: Docker@2
-  displayName: 'Login to ACR'
-  inputs:
-    command: login
-    containerRegistry: $(ACR_SERVICE_CONNECTION)
-
-# Step: Push Docker image to ACR
-- task: Docker@2
-  displayName: 'Push Docker image to ACR'
-  inputs:
-    command: push
-    repository: $(ACR_NAME).azurecr.io/internship-api
-    tags: latest
+    tags: |
+      $(IMAGE_TAG)
+      $(Build.BuildId)
 
 # Optional: Deploy to Azure Web App for Containers
 # - task: AzureWebAppContainer@1
