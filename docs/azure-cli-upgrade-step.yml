@@ -1,0 +1,15 @@
+# Add this step before other Azure CLI commands if you want to upgrade CLI in pipeline
+- task: PowerShell@2
+  displayName: 'Upgrade Azure CLI (optional)'
+  inputs:
+    targetType: 'inline'
+    script: |
+      Write-Output "Checking if Azure CLI upgrade is needed..."
+      try {
+        # This will upgrade CLI if newer version is available
+        az upgrade --yes --all
+        Write-Output "Azure CLI upgraded successfully"
+      } catch {
+        Write-Warning "Azure CLI upgrade failed or not needed: $($_.Exception.Message)"
+      }
+  condition: eq(variables['UPGRADE_AZURE_CLI'], 'true') # Only run if variable is set
