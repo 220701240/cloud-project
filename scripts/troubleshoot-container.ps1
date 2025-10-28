@@ -65,7 +65,7 @@ Write-Output "=== Troubleshooting Complete ==="
 
 # 8. Suggested next steps
 Write-Output ""
-Write-Output "🔍 Analysis & Next Steps:"
+Write-Output "Analysis and Next Steps:"
 Write-Output "1. Check the logs above for startup errors"
 Write-Output "2. If you see missing package errors, update package.json and rebuild"
 Write-Output "3. If health is 'Unhealthy', check for port/readiness probe issues"
