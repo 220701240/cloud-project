@@ -244,14 +244,17 @@ steps:
       az containerapp revision list `
         --name $ContainerAppName `
         --resource-group $ResourceGroup `
-        --query "[?properties.active==\`true\`].[name,properties.createdTime,properties.template.containers[0].image]" -o table
+        --query "[?properties.active==``true``].[name,properties.createdTime,properties.template.containers[0].image]" -o table
 
       $fqdn = az containerapp show --name $ContainerAppName --resource-group $ResourceGroup --query properties.configuration.ingress.fqdn -o tsv
       if ($fqdn) { Write-Output "Container App FQDN: https://$fqdn" }
 
       Write-Output "Recent revision events (last 30):"
-      az containerapp revision list --name $ContainerAppName --resource-group $ResourceGroup --query "[].name" -o tsv | Select-Object -First 1 | ForEach-Object {
-        az containerapp revision show --name $_ --resource-group $ResourceGroup --query properties.healthState -o tsv | ForEach-Object { Write-Output ("HealthState: " + $_) }
+      $latestRevision = az containerapp revision list --name $ContainerAppName --resource-group $ResourceGroup --query "[0].name" -o tsv
+      if ($latestRevision) {
+        Write-Output "Latest revision: $latestRevision"
+        $healthState = az containerapp revision show --name $ContainerAppName --resource-group $ResourceGroup --revision $latestRevision --query properties.healthState -o tsv
+        Write-Output "Health State: $healthState"
       }
 
 # ----------------------------
