@@ -211,16 +211,26 @@ steps:
       $ContainerAppName = "internship-api"
       $Image = "$(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(Build.BuildId)"
 
-      Write-Output "Ensuring Container App can pull from ACR (if creds provided) ..."
-      if ($env:ACR_USERNAME -and $env:ACR_PASSWORD) {
-        az containerapp registry set `
-          --name $ContainerAppName `
-          --resource-group $ResourceGroup `
-          --server $(ACR_LOGIN_SERVER) `
-          --username $(ACR_USERNAME) `
-          --password $(ACR_PASSWORD) | Out-Null
-      } else {
-        Write-Output "Skipping registry set: ACR_USERNAME/ACR_PASSWORD not provided (assuming already configured)."
+      Write-Output "Ensuring Container App can pull from ACR (auto-configure admin creds) ..."
+      $acrName = "$(ACR_NAME)"
+      try {
+        # Enable admin if not already enabled (idempotent)
+        az acr update -n $acrName --admin-enabled true | Out-Null
+        $acrUser = az acr credential show -n $acrName --query username -o tsv
+        $acrPass = az acr credential show -n $acrName --query passwords[0].value -o tsv
+        if ($acrUser -and $acrPass) {
+          az containerapp registry set `
+            --name $ContainerAppName `
+            --resource-group $ResourceGroup `
+            --server $(ACR_LOGIN_SERVER) `
+            --username $acrUser `
+            --password $acrPass | Out-Null
+          Write-Output "Registry credentials configured for $(ACR_LOGIN_SERVER)."
+        } else {
+          Write-Warning "Could not retrieve ACR credentials; proceeding without registry update."
+        }
+      } catch {
+        Write-Warning "Failed to configure registry credentials automatically: $($_.Exception.Message)"
       }
 
       Write-Output "Updating image to $Image ..."
@@ -238,6 +248,11 @@ steps:
 
       $fqdn = az containerapp show --name $ContainerAppName --resource-group $ResourceGroup --query properties.configuration.ingress.fqdn -o tsv
       if ($fqdn) { Write-Output "Container App FQDN: https://$fqdn" }
+
+      Write-Output "Recent revision events (last 30):"
+      az containerapp revision list --name $ContainerAppName --resource-group $ResourceGroup --query "[].name" -o tsv | Select-Object -First 1 | ForEach-Object {
+        az containerapp revision show --name $_ --resource-group $ResourceGroup --query properties.healthState -o tsv | ForEach-Object { Write-Output ("HealthState: " + $_) }
+      }
 
 # ----------------------------
 # Step 5: Finish
