@@ -161,7 +161,7 @@ steps:
 
       $work = $env:SYSTEM_DEFAULTWORKINGDIRECTORY
       Write-Output "Running ZAP baseline from image $image against http://host.docker.internal:8000 ..."
-      docker run --rm -v "$work:/zap/wrk" $image zap-baseline.py -t http://host.docker.internal:8000 -r zap-report.html -I -m 5
+      docker run --rm -v "${work}:/zap/wrk" $image zap-baseline.py -t http://host.docker.internal:8000 -r zap-report.html -I -m 5
 
 - task: PublishBuildArtifacts@1
   displayName: 'Publish ZAP report artifact'
