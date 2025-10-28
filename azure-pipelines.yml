@@ -2,10 +2,11 @@ trigger:
 - main   # Trigger pipeline on push to main branch
 
 pool:
-  name: Default   # your self-hosted agent pool
-  demands: 
-    - Agent.Name -equals SelfHostedAgent
-    - Agent.OS -equals Windows_NT
+  vmImage: 'ubuntu-latest'  # Use Microsoft-hosted agent temporarily
+  # name: Default   # your self-hosted agent pool (commented out)
+  # demands: 
+  #   - Agent.Name -equals SelfHostedAgent
+  #   - Agent.OS -equals Windows_NT
 
 variables:
 - group: secrets   # Linked variable group name
@@ -21,6 +22,41 @@ variables:
 
 steps:
 # Step: Build and push Docker image (uses ACR service connection to prefix login server)
+- task: PowerShell@2
+  displayName: 'Check Docker Engine Health'
+  inputs:
+    targetType: 'inline'
+    script: |
+      Write-Output "Checking Docker Engine health..."
+      try {
+        $dockerVersion = docker --version
+        Write-Output "Docker version: $dockerVersion"
+        
+        $dockerInfo = docker info --format "{{.ServerVersion}}"
+        Write-Output "Docker daemon version: $dockerInfo"
+        
+        Write-Output "Testing Docker connectivity..."
+        docker ps | Out-Null
+        Write-Output "✅ Docker is healthy"
+        
+      } catch {
+        Write-Warning "Docker issue detected: $($_.Exception.Message)"
+        Write-Output "Attempting to restart Docker service..."
+        
+        try {
+          # Try to restart Docker service (Windows)
+          Restart-Service docker -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 30
+          
+          # Test again
+          docker info | Out-Null
+          Write-Output "✅ Docker restarted successfully"
+        } catch {
+          Write-Error "❌ Docker restart failed. Manual intervention required."
+          exit 1
+        }
+      }
+
 - task: Docker@2
   displayName: 'Build and push Docker image to ACR'
   inputs:
@@ -32,6 +68,31 @@ steps:
     tags: |
       $(IMAGE_TAG)
       $(Build.BuildId)
+
+# Fallback: Use ACR Build if Docker fails
+- task: AzureCLI@2
+  displayName: 'Build and push using ACR Build (fallback)'
+  condition: failed() # Only run if Docker build failed
+  inputs:
+    azureSubscription: 'MyAzureConnection'
+    scriptType: 'ps'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      Write-Output "Using ACR Build as fallback for Docker build failure..."
+      
+      $acrName = "$(ACR_NAME)"
+      $imageName = "$(IMAGE_NAME)"
+      $buildId = "$(Build.BuildId)"
+      
+      # Build using ACR Build (serverless)
+      az acr build `
+        --registry $acrName `
+        --image "$imageName`:latest" `
+        --image "$imageName`:$buildId" `
+        --file internship-api/Dockerfile `
+        internship-api/
+      
+      Write-Output "✅ ACR Build completed successfully"
 
 # (moved) Update Container App image step is placed after env vars are updated
 

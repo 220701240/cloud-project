@@ -1,0 +1,26 @@
+# Alternative build step using ACR Build (if Docker fails)
+# Replace the Docker@2 task with this AzureCLI@2 task
+
+- task: AzureCLI@2
+  displayName: 'Build and push using ACR Build (fallback)'
+  condition: failed() # Only run if Docker build failed
+  inputs:
+    azureSubscription: 'MyAzureConnection'
+    scriptType: 'ps'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      Write-Output "Using ACR Build as fallback for Docker build failure..."
+      
+      $acrName = "$(ACR_NAME)"
+      $imageName = "$(IMAGE_NAME)"
+      $buildId = "$(Build.BuildId)"
+      
+      # Build using ACR Build (serverless)
+      az acr build `
+        --registry $acrName `
+        --image "$imageName`:latest" `
+        --image "$imageName`:$buildId" `
+        --file internship-api/Dockerfile `
+        internship-api/
+      
+      Write-Output "✅ ACR Build completed successfully"
