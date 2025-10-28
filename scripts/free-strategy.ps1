@@ -1,0 +1,40 @@
+# free-strategy.ps1 - Make everything free tomorrow
+
+Write-Output "AZURE FOR STUDENTS - MAKE EVERYTHING FREE TOMORROW"
+Write-Output "=================================================="
+Write-Output ""
+
+Write-Output "GREAT NEWS: You have Azure for Students subscription!"
+Write-Output "This includes USD 100 credit + many free services"
+Write-Output ""
+
+Write-Output "YOUR FREE CREDITS STATUS:"
+Write-Output "--------------------------------------"
+Write-Output "Azure for Students includes:"
+Write-Output "- USD 100 in Azure credits (check remaining balance)"
+Write-Output "- 12 months of free services"
+Write-Output "- Always-free tier services"
+Write-Output ""
+Write-Output "Check balance: https://www.microsoftazuresponsorship.com/Balance"
+Write-Output ""
+
+Write-Output "CURRENT RESOURCES - FREE STATUS:"
+Write-Output "--------------------------------------"
+Write-Output "App Service Plan (F1): 100% FREE forever"
+Write-Output "Application Insights: 100% FREE (5GB per month)"
+Write-Output "SQL Database: 100% FREE (serverless free tier)"
+Write-Output "Static Web App: 100% FREE forever"
+Write-Output "Storage Account: 100% FREE (5GB)"
+Write-Output "Cognitive Services: 100% FREE tier"
+Write-Output ""
+Write-Output "Only potential costs:"
+Write-Output "Container App: ~USD 0.50-1.00 per day"
+Write-Output "Container Registry: ~USD 0.17 per day"
+Write-Output ""
+
+Write-Output "STRATEGY FOR TOMORROW (100% FREE):"
+Write-Output "=================================================="
+Write-Output ""
+
+Write-Output "MORNING - Scale Container App to Zero:"
+Write-Output "--------------------------------------"
