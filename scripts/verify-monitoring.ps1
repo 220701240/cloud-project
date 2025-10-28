@@ -92,7 +92,6 @@ try {
 } catch {
     Write-Warning "Failed to test application: $($_.Exception.Message)"
 }
-}
 
 Write-Output ""
 
