@@ -33,45 +33,7 @@ steps:
       $(IMAGE_TAG)
       $(Build.BuildId)
 
-# Step: Deploy new image to Azure Container Apps
-- task: AzureCLI@2
-  displayName: 'Update Container App image to $(Build.BuildId)'
-  inputs:
-    azureSubscription: 'MyAzureConnection'
-    scriptType: 'ps'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      $ResourceGroup = "placement-tracker-rg"
-      $ContainerAppName = "internship-api"
-      $Image = "$(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(Build.BuildId)"
-
-      Write-Output "Ensuring Container App can pull from ACR (if creds provided) ..."
-      if ($env:ACR_USERNAME -and $env:ACR_PASSWORD) {
-        az containerapp registry set `
-          --name $ContainerAppName `
-          --resource-group $ResourceGroup `
-          --server $(ACR_LOGIN_SERVER) `
-          --username $(ACR_USERNAME) `
-          --password $(ACR_PASSWORD) | Out-Null
-      } else {
-        Write-Output "Skipping registry set: ACR_USERNAME/ACR_PASSWORD not provided (assuming already configured)."
-      }
-
-      Write-Output "Updating image to $Image ..."
-      az containerapp update `
-        --name $ContainerAppName `
-        --resource-group $ResourceGroup `
-        --image $Image |
-        Out-Null
-
-      Write-Output "Active revisions:"
-      az containerapp revision list `
-        --name $ContainerAppName `
-        --resource-group $ResourceGroup `
-        --query "[?properties.active==\`true\`].[name,properties.createdTime,properties.template.containers[0].image]" -o table
-
-      $fqdn = az containerapp show --name $ContainerAppName --resource-group $ResourceGroup --query properties.configuration.ingress.fqdn -o tsv
-      if ($fqdn) { Write-Output "Container App FQDN: https://$fqdn" }
+# (moved) Update Container App image step is placed after env vars are updated
 
 # Optional: Deploy to Azure Web App for Containers
 # - task: AzureWebAppContainer@1
@@ -235,6 +197,47 @@ steps:
         --set-env-vars $envArgs
 
   displayName: 'Update backend env variables'
+
+# ----------------------------
+# Step: Deploy new image to Azure Container Apps (after env vars are set)
+- task: AzureCLI@2
+  displayName: 'Update Container App image to $(Build.BuildId)'
+  inputs:
+    azureSubscription: 'MyAzureConnection'
+    scriptType: 'ps'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      $ResourceGroup = "placement-tracker-rg"
+      $ContainerAppName = "internship-api"
+      $Image = "$(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(Build.BuildId)"
+
+      Write-Output "Ensuring Container App can pull from ACR (if creds provided) ..."
+      if ($env:ACR_USERNAME -and $env:ACR_PASSWORD) {
+        az containerapp registry set `
+          --name $ContainerAppName `
+          --resource-group $ResourceGroup `
+          --server $(ACR_LOGIN_SERVER) `
+          --username $(ACR_USERNAME) `
+          --password $(ACR_PASSWORD) | Out-Null
+      } else {
+        Write-Output "Skipping registry set: ACR_USERNAME/ACR_PASSWORD not provided (assuming already configured)."
+      }
+
+      Write-Output "Updating image to $Image ..."
+      az containerapp update `
+        --name $ContainerAppName `
+        --resource-group $ResourceGroup `
+        --image $Image |
+        Out-Null
+
+      Write-Output "Active revisions:"
+      az containerapp revision list `
+        --name $ContainerAppName `
+        --resource-group $ResourceGroup `
+        --query "[?properties.active==\`true\`].[name,properties.createdTime,properties.template.containers[0].image]" -o table
+
+      $fqdn = az containerapp show --name $ContainerAppName --resource-group $ResourceGroup --query properties.configuration.ingress.fqdn -o tsv
+      if ($fqdn) { Write-Output "Container App FQDN: https://$fqdn" }
 
 # ----------------------------
 # Step 5: Finish
