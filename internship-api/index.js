@@ -1,9 +1,108 @@
-// ---------- AUTH MIDDLEWARE ----------
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import express from "express";
+import bodyParser from "body-parser";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import sql from "mssql";
+import multer from 'multer';
+const upload = multer({ dest: 'uploads/' });
+import fs from 'fs';
+import * as pdfParse from 'pdf-parse';
+// pdf-parse v2.x exports PDFParse class, not a default function
+import { TextAnalyticsClient, AzureKeyCredential } from "@azure/ai-text-analytics";
+
+const client = new TextAnalyticsClient(
+  process.env.AZURE_LANGUAGE_ENDPOINT,
+  new AzureKeyCredential(process.env.AZURE_LANGUAGE_KEY)
+);
+
+// Application Insights (lightweight instrumentation)
+// Avoid top-level await; initialize asynchronously without blocking startup.
+try {
+  (async () => {
+    const mod = await import('applicationinsights');
+    const ai = mod.default || mod;
+
+    const connStr = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING;
+    const ikey = process.env.APPINSIGHTS_INSTRUMENTATIONKEY;
+
+    // Prefer connection string if provided; else use instrumentation key
+    if (connStr) {
+      // applicationinsights reads connection string from env var
+      process.env.APPLICATIONINSIGHTS_CONNECTION_STRING = connStr;
+      ai.setup()
+        .setAutoCollectRequests(true)
+        .setAutoCollectPerformance(true)
+        .setAutoCollectExceptions(true)
+        .setAutoCollectDependencies(true)
+        .setSendLiveMetrics(true)
+        .start();
+    } else if (ikey) {
+      ai.setup(ikey)
+        .setAutoCollectRequests(true)
+        .setAutoCollectPerformance(true)
+        .setAutoCollectExceptions(true)
+        .setAutoCollectDependencies(true)
+        .setSendLiveMetrics(true)
+        .start();
+    } else {
+      console.warn('App Insights: no connection string or instrumentation key set.');
+      return;
+    }
+
+    // Optional: set role name for clearer grouping in Azure Portal
+    try {
+      const client = ai.defaultClient;
+      const { cloudRole } = client.context.keys;
+      client.context.tags[cloudRole] = 'internship-api';
+      client.trackEvent({ name: 'server_start' });
+    } catch {}
+
+    console.log('Application Insights started');
+  })().catch(err => console.warn('App Insights init failed:', err.message || err));
+} catch (err) {
+  // do not block startup if appinsights is unavailable
+  console.warn('App Insights not initialized:', err.message || err);
+}
+
+import {
+  BlobServiceClient,
+  StorageSharedKeyCredential,
+  BlobSASPermissions,
+  generateBlobSASQueryParameters
+} from "@azure/storage-blob";
+import path from "path";
+import dotenv from "dotenv";
+import fetch from "node-fetch";
+import nodemailer from "nodemailer";
+dotenv.config();
+
+// Centralized JWT secret handling
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'development' ? 'dev-secret' : undefined);
+if (!JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET is not set. Refusing to start in non-development environment.');
+  process.exit(1);
+}
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+// Running behind Azure Container Apps ingress
+app.set('trust proxy', true);
+const transporter = nodemailer.createTransport({
+  service: process.env.SMTP_SERVICE || 'gmail',
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
+  }
+});
+
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token provided' });
-  jwt.verify(token, process.env.JWT_SECRET || 'secretkey', (err, user) => {
+  jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) return res.status(403).json({ error: 'Invalid token' });
     req.user = user;
     next();
@@ -19,8 +118,7 @@ function authorizeRoles(...roles) {
   };
 }
 
-// ---------- AUTH ROUTES ----------
-// Register
+
 app.post('/api/register', async (req, res) => {
   const { username, password, fullName, role, email } = req.body;
   if (!username || !password || !fullName || !role) return res.status(400).json({ error: 'Missing fields' });
@@ -44,7 +142,7 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// Login
+
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
@@ -57,14 +155,13 @@ app.post('/api/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
     const match = await bcrypt.compare(password, user.PasswordHash);
     if (!match) return res.status(401).json({ error: 'Invalid credentials' });
-    const token = jwt.sign({ userId: user.UserID, role: user.Role, username: user.Username, fullName: user.FullName }, process.env.JWT_SECRET || 'secretkey', { expiresIn: '2h' });
+  const token = jwt.sign({ userId: user.UserID, role: user.Role, username: user.Username, fullName: user.FullName }, JWT_SECRET, { expiresIn: '2h' });
     res.json({ token, role: user.Role, fullName: user.FullName, userId: user.UserID });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Get current user info
 app.get('/api/me', authenticateToken, async (req, res) => {
   try {
     const pool = await getPool();
@@ -74,29 +171,6 @@ app.get('/api/me', authenticateToken, async (req, res) => {
     res.json(result.recordset[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
-  }
-});
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import express from "express";
-import bodyParser from "body-parser";
-import sql from "mssql";
-import {
-  BlobServiceClient,
-  StorageSharedKeyCredential,
-  BlobSASPermissions,
-  generateBlobSASQueryParameters
-} from "@azure/storage-blob";
-import path from "path";
-import dotenv from "dotenv";
-import fetch from "node-fetch";
-import nodemailer from "nodemailer";
-// ---------- EMAIL CONFIG ----------
-const transporter = nodemailer.createTransport({
-  service: process.env.SMTP_SERVICE || 'gmail',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
   }
 });
 
@@ -113,17 +187,27 @@ async function sendStatusEmail(to, subject, text) {
   }
 }
 
-dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 3000;
 
-// ---------- MIDDLEWARE ----------
+// Security & hardening middleware
+app.use(helmet());
+
+// CORS with allowlist using FRONTEND_ORIGIN (comma-separated domains)
+const allowedOrigins = (process.env.FRONTEND_ORIGIN || "").split(',').map(s => s.trim()).filter(Boolean);
+app.use(cors({
+  origin: allowedOrigins.length ? allowedOrigins : '*',
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  credentials: true,
+}));
+
+// Basic rate limiting
+const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
+app.use(limiter);
+
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
 app.use(express.static(path.join(process.cwd(), "..", "frontend"))); // serve static files
 
-// ---------- DB CONFIG ----------
 const dbConfig = {
   user: process.env.AZURE_SQL_USER,
   password: process.env.AZURE_SQL_PASSWORD,
@@ -135,12 +219,10 @@ const dbConfig = {
   },
 };
 
-// Connect to SQL
 async function getPool() {
   return await sql.connect(dbConfig);
 }
 
-// ================= QnA Chatbot Route =================
 app.post("/api/qna", async (req, res) => {
   const { question } = req.body;
   if (!question) return res.status(400).json({ error: "Question required" });
@@ -157,7 +239,6 @@ app.post("/api/qna", async (req, res) => {
       body: JSON.stringify({
         question,
         top: 1
-        // knowledgeBaseId: "YOUR_KB_ID" // add if needed
       })
     });
     const data = await response.json();
@@ -167,9 +248,7 @@ app.post("/api/qna", async (req, res) => {
   }
 });
 
-// ================= STUDENT ROUTES =================
 
-// Get all students
 app.get("/api/students", async (req, res) => {
   try {
     const pool = await getPool();
@@ -179,7 +258,6 @@ app.get("/api/students", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Add student
 app.post("/api/students", async (req, res) => {
   const { rollNumber, firstName, lastName, email, resumeFileName, resumeContent } = req.body;
 
@@ -191,10 +269,8 @@ app.post("/api/students", async (req, res) => {
       return res.status(400).json({ error: "Missing or invalid resume file content" });
     }
 
-    // Convert to Buffer
     const buffer = Buffer.from(resumeContent, "base64");
 
-    // Azure Blob
     const accountName = process.env.AZURE_STORAGE_ACCOUNT;
     const accountKey = process.env.AZURE_STORAGE_KEY;
     const containerName = "resumes";
@@ -217,7 +293,6 @@ app.post("/api/students", async (req, res) => {
 
     await blockBlobClient.uploadData(buffer);
 
-    // Generate SAS URL for the uploaded resume
     const sasToken = generateBlobSASQueryParameters(
       {
         containerName,
@@ -230,7 +305,6 @@ app.post("/api/students", async (req, res) => {
     ).toString();
     const resumeUrl = `${blockBlobClient.url}?${sasToken}`;
 
-    // Insert into DB
     const pool = await getPool();
     await pool
       .request()
@@ -250,7 +324,6 @@ app.post("/api/students", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// ================= FILE UPLOAD (RESUMES) =================
 app.post("/api/upload", async (req, res) => {
   try {
     const { fileName, fileContent } = req.body; // Base64 string from frontend
@@ -271,7 +344,6 @@ app.post("/api/upload", async (req, res) => {
       return res.status(500).json({ error: "Azure Storage Account key is missing or invalid in environment variables." });
     }
 
-    // Create BlobServiceClient
     const sharedKey = new StorageSharedKeyCredential(accountName, accountKey);
     const blobServiceClient = new BlobServiceClient(
       `https://${accountName}.blob.core.windows.net`,
@@ -280,14 +352,11 @@ app.post("/api/upload", async (req, res) => {
 
     const containerClient = blobServiceClient.getContainerClient(containerName);
 
-    // Convert Base64 -> Buffer
     const buffer = Buffer.from(fileContent, "base64");
 
-    // Upload file
     const blockBlobClient = containerClient.getBlockBlobClient(fileName);
     await blockBlobClient.uploadData(buffer);
 
-    // Generate SAS URL for the uploaded file
     const sasToken = generateBlobSASQueryParameters(
       {
         containerName,
@@ -306,7 +375,6 @@ app.post("/api/upload", async (req, res) => {
   }
 });
 
-// ================= FACULTY ROUTES =================
 app.post("/api/faculty", async (req, res) => {
   const { name, email, department } = req.body;
   try {
@@ -337,7 +405,6 @@ app.get("/api/faculty", async (req, res) => {
   }
 });
 
-// ================= INTERNSHIP ROUTES =================
 app.post("/api/internships", async (req, res) => {
   const { studentId, company, role, startDate, endDate } = req.body;
   try {
@@ -376,9 +443,7 @@ app.get("/api/internships", async (req, res) => {
   }
 });
 
-// ================= PLACEMENT ROUTES =================
-// ================= COMPANY ROUTES =================
-// Create company
+
 app.post("/api/companies", async (req, res) => {
   const { name, industry, location, website, description } = req.body;
   try {
@@ -398,7 +463,6 @@ app.post("/api/companies", async (req, res) => {
   }
 });
 
-// Get all companies
 app.get("/api/companies", async (req, res) => {
   try {
     const pool = await getPool();
@@ -410,7 +474,6 @@ app.get("/api/companies", async (req, res) => {
   }
 });
 
-// Update company
 app.put("/api/companies/:id", async (req, res) => {
   const { id } = req.params;
   const { name, industry, location, website, description } = req.body;
@@ -431,7 +494,6 @@ app.put("/api/companies/:id", async (req, res) => {
   }
 });
 
-// Delete company
 app.delete("/api/companies/:id", async (req, res) => {
   const { id } = req.params;
   try {
@@ -482,9 +544,7 @@ app.get("/api/placements", async (req, res) => {
   }
 });
 
-// ================= AI RECOMMENDATIONS =================
-// ================= APPLICATIONS ROUTES =================
-// Student applies for internship/placement
+
 app.post("/api/applications", async (req, res) => {
   const { studentId, companyId, role, type } = req.body;
   try {
@@ -502,7 +562,6 @@ app.post("/api/applications", async (req, res) => {
   }
 });
 
-// Admin/faculty: list all applications (with student & company info)
 app.get("/api/applications", async (req, res) => {
   try {
     const pool = await getPool();
@@ -522,7 +581,6 @@ app.get("/api/applications", async (req, res) => {
   }
 });
 
-// Student: view their own applications
 app.get("/api/applications/:studentId", async (req, res) => {
   const { studentId } = req.params;
   try {
@@ -544,13 +602,11 @@ app.get("/api/applications/:studentId", async (req, res) => {
   }
 });
 
-// Admin/faculty: review/update application status (with email notification)
 app.put("/api/applications/:id", async (req, res) => {
   const { id } = req.params;
   const { status, reviewedBy, comments } = req.body;
   try {
     const pool = await getPool();
-    // Update application
     await pool.request()
       .input("id", sql.Int, id)
       .input("status", sql.NVarChar, status)
@@ -558,7 +614,6 @@ app.put("/api/applications/:id", async (req, res) => {
       .input("comments", sql.NVarChar, comments)
       .query(`UPDATE Applications SET Status=@status, ReviewedAt=GETDATE(), ReviewedBy=@reviewedBy, Comments=@comments WHERE ApplicationID=@id`);
 
-    // Get student email and application details
     const result = await pool.request()
       .input("id", sql.Int, id)
       .query(`SELECT a.Role, a.Type, a.Status, a.Comments, s.Email, s.FirstName, s.LastName, c.Name AS CompanyName
@@ -618,9 +673,7 @@ app.get("/api/recommendations", async (req, res) => {
   }
 });
 
-// ================= AI KEY PHRASE EXTRACTION (Azure Text Analytics) =================
-// ================= ANALYTICS & REPORTS ROUTES =================
-// Placement stats: Placed vs Not Placed
+
 app.get('/api/analytics/placement', async (req, res) => {
   try {
     const pool = await getPool();
@@ -632,7 +685,6 @@ app.get('/api/analytics/placement', async (req, res) => {
   }
 });
 
-// Internship stats: Approved internships by status
 app.get('/api/analytics/internship', async (req, res) => {
   try {
     const pool = await getPool();
@@ -648,7 +700,6 @@ app.get('/api/analytics/internship', async (req, res) => {
   }
 });
 
-// Company-wise placements: Number of approved placements per company
 app.get('/api/analytics/company-placements', async (req, res) => {
   try {
     const pool = await getPool();
@@ -664,21 +715,50 @@ app.get('/api/analytics/company-placements', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-import * as aiService from "./aiService.js";
-app.post("/api/keyphrases", async (req, res) => {
-  const { text } = req.body;
-  if (!text) return res.status(400).json({ error: "Text is required" });
+import aiService from "./aiService.js";
+app.post('/api/keyphrases/file', upload.single('file'), async (req, res) => {
   try {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    let text = '';
+    if (ext === '.pdf') {
+      const dataBuffer = fs.readFileSync(req.file.path);
+      const parser = new pdfParse.PDFParse({ data: dataBuffer });
+      const result = await parser.getText();
+      text = result.text;
+      await parser.destroy();
+    } else if (ext === '.txt') {
+      text = fs.readFileSync(req.file.path, 'utf8');
+    } else {
+      return res.status(400).json({ error: 'Unsupported file type. Only PDF and TXT are supported.' });
+    }
     const keyPhrases = await aiService.extractKeyPhrases(text);
+    fs.unlinkSync(req.file.path); // delete temp file
     res.json({ keyPhrases });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/keyphrases', async (req, res) => {
+  try {
+    const text = req.body.text;
+    if (!text) return res.status(400).json({ error: "No text provided" });
+
+    const [result] = await client.extractKeyPhrases([text]);
+    res.json({ keyPhrases: result.keyPhrases });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ================= FRONTEND ROUTES =================
 
-// ================= START SERVER =================
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
+});
+
+// Lightweight health endpoint for readiness/liveness checks
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ status: 'ok' });
 });
