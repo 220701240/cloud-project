@@ -74,7 +74,8 @@ try {
             Write-Output "Testing additional endpoints..."
             
             try {
-                $loginResponse = Invoke-WebRequest -Uri "https://$fqdn/api/login" -Method POST -Body '{"email":"test","password":"test"}' -ContentType "application/json" -UseBasicParsing -TimeoutSec 10
+                $testBody = '{"email":"test","password":"test"}'
+                $loginResponse = Invoke-WebRequest -Uri "https://$fqdn/api/login" -Method POST -Body $testBody -ContentType "application/json" -UseBasicParsing -TimeoutSec 10
                 Write-Output "✅ /api/login endpoint responding (Status: $($loginResponse.StatusCode))"
             } catch {
                 Write-Output "ℹ️ /api/login endpoint test: $($_.Exception.Message)"
