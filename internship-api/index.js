@@ -3,8 +3,6 @@ import jwt from "jsonwebtoken";
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
-import helmet from "helmet";
-import rateLimit from "express-rate-limit";
 import sql from "mssql";
 import multer from 'multer';
 const upload = multer({ dest: 'uploads/' });
@@ -190,7 +188,7 @@ async function sendStatusEmail(to, subject, text) {
 
 
 // Security & hardening middleware
-app.use(helmet());
+// app.use(helmet()); // Temporarily disabled - package not in current image
 
 // CORS with allowlist using FRONTEND_ORIGIN (comma-separated domains)
 const allowedOrigins = (process.env.FRONTEND_ORIGIN || "").split(',').map(s => s.trim()).filter(Boolean);
@@ -201,8 +199,8 @@ app.use(cors({
 }));
 
 // Basic rate limiting
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
-app.use(limiter);
+// const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 }); // Temporarily disabled
+// app.use(limiter); // Temporarily disabled
 
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));

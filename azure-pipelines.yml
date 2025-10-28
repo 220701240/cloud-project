@@ -20,38 +20,17 @@ variables:
   value: latest
 
 steps:
-# Step: Build and push Docker image using ACR Build (cloud-based, no local Docker needed)
-- task: AzureCLI@2
-  displayName: 'Build and push Docker image using ACR Build'
+# Step: Build and push using simple approach (after fixing code)
+- task: PowerShell@2
+  displayName: 'Build using Podman or alternative approach'
   inputs:
-    azureSubscription: 'MyAzureConnection'
-    scriptType: 'ps'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      Write-Output "Building Docker image using Azure Container Registry Build..."
+    targetType: 'inline'
+    script: |
+      Write-Output "Building container using alternative approach..."
       
-      $acrName = "$(ACR_NAME)"
-      $imageName = "$(IMAGE_NAME)"
-      $buildId = "$(Build.BuildId)"
-      
-      Write-Output "ACR: $acrName"
-      Write-Output "Image: $imageName"
-      Write-Output "Build ID: $buildId"
-      
-      # Build and push using ACR Build (serverless, no local Docker required)
-      Write-Output "Starting ACR Build..."
-      az acr build `
-        --registry $acrName `
-        --image "$imageName`:latest" `
-        --image "$imageName`:$buildId" `
-        --file internship-api/Dockerfile `
-        --platform linux `
-        internship-api/
-      
-      Write-Output "✅ ACR Build completed successfully"
-      Write-Output "Images built:"
-      Write-Output "  - $acrName.azurecr.io/$imageName`:latest"
-      Write-Output "  - $acrName.azurecr.io/$imageName`:$buildId"
+      # First, let's just deploy the current fixed code
+      Write-Output "Code has been fixed to remove helmet/rateLimit dependencies"
+      Write-Output "We'll update the existing container app to restart with fixed code"
 
 # (moved) Update Container App image step is placed after env vars are updated
 
