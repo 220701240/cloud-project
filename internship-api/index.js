@@ -206,8 +206,8 @@ app.use(cors({
 // const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 }); // Temporarily disabled
 // app.use(limiter); // Temporarily disabled
 
-app.use(bodyParser.json({ limit: "10mb" }));
-app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "frontend"))); // serve static files from container
 
 const dbConfig = {
