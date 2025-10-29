@@ -13,6 +13,9 @@ RUN npm install
 # Copy the rest of the project files
 COPY . .
 
+# Copy frontend files to be served as static content
+COPY ../frontend ./frontend
+
 # Expose port the app runs on
 EXPOSE 3000
 

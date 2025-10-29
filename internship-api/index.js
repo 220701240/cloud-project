@@ -204,7 +204,7 @@ app.use(cors({
 
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
-app.use(express.static(path.join(process.cwd(), "..", "frontend"))); // serve static files
+app.use(express.static(path.join(__dirname, "frontend"))); // serve static files from container
 
 const dbConfig = {
   user: process.env.AZURE_SQL_USER,
