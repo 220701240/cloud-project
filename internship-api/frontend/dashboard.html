@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard - Placement & Internship Tracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; }
+    header { background: #007bff; color: white; padding: 15px; text-align: center; }
+    section { padding: 30px; }
+    .stats { display: flex; gap: 30px; margin-bottom: 30px; }
+    .stat-card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #ccc; padding: 20px; min-width: 180px; text-align: center; }
+    h2 { color: #2c3e50; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+    th { background: #007bff; color: white; }
+    .download-btn { background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; margin-bottom: 20px; }
+    .download-btn:hover { background: #218838; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Dashboard</h1>
+  </header>
+  <section>
+    <div class="stats">
+      <div class="stat-card">
+        <h2 id="totalStudents">0</h2>
+        <p>Total Students</p>
+      </div>
+      <div class="stat-card">
+        <h2 id="totalInternships">0</h2>
+        <p>Total Internships</p>
+      </div>
+      <div class="stat-card">
+        <h2 id="totalPlacements">0</h2>
+        <p>Total Placements</p>
+      </div>
+      <div class="stat-card">
+        <h2 id="avgPackage">0</h2>
+        <p>Avg. Placement Package</p>
+      </div>
+    </div>
+    <button class="download-btn" onclick="downloadReport()">Download Report (CSV)</button>
+    <h2>Recent Placements</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>PlacementID</th>
+          <th>StudentID</th>
+          <th>Company</th>
+          <th>Package</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="placementTable"></tbody>
+    </table>
+    <h2>Recent Internships</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>InternshipID</th>
+          <th>StudentID</th>
+          <th>Company</th>
+          <th>Role</th>
+          <th>Start Date</th>
+          <th>End Date</th>
+        </tr>
+      </thead>
+      <tbody id="internshipTable"></tbody>
+    </table>
+  </section>
+  <script>
+    async function loadStats() {
+      const students = await fetch('/api/students').then(r => r.json());
+      const internships = await fetch('/api/internships').then(r => r.json());
+      const placements = await fetch('/api/placements').then(r => r.json());
+      document.getElementById('totalStudents').innerText = students.length;
+      document.getElementById('totalInternships').innerText = internships.length;
+      document.getElementById('totalPlacements').innerText = placements.length;
+      const avg = placements.length ? (placements.reduce((sum, p) => sum + (parseFloat(p.Package) || 0), 0) / placements.length).toFixed(2) : 0;
+      document.getElementById('avgPackage').innerText = avg;
+    }
+    async function loadTables() {
+      const placements = await fetch('/api/placements').then(r => r.json());
+      const placementTable = document.getElementById('placementTable');
+      placementTable.innerHTML = '';
+      placements.forEach(p => {
+        const row = placementTable.insertRow();
+        row.insertCell(0).innerText = p.PlacementID;
+        row.insertCell(1).innerText = p.StudentID;
+        row.insertCell(2).innerText = p.Company;
+        row.insertCell(3).innerText = p.Package;
+        row.insertCell(4).innerText = p.Status;
+      });
+      const internships = await fetch('/api/internships').then(r => r.json());
+      const internshipTable = document.getElementById('internshipTable');
+      internshipTable.innerHTML = '';
+      internships.forEach(i => {
+        const row = internshipTable.insertRow();
+        row.insertCell(0).innerText = i.InternshipID;
+        row.insertCell(1).innerText = i.StudentID;
+        row.insertCell(2).innerText = i.Company;
+        row.insertCell(3).innerText = i.Role;
+        row.insertCell(4).innerText = i.StartDate;
+        row.insertCell(5).innerText = i.EndDate;
+      });
+    }
+    function downloadReport() {
+      Promise.all([
+        fetch('/api/placements').then(r => r.json()),
+        fetch('/api/internships').then(r => r.json())
+      ]).then(([placements, internships]) => {
+        let csv = 'Type,ID,StudentID,Company,Role/Package,Status,StartDate,EndDate\n';
+        placements.forEach(p => {
+          csv += `Placement,${p.PlacementID},${p.StudentID},${p.Company},${p.Package},${p.Status},,,\n`;
+        });
+        internships.forEach(i => {
+          csv += `Internship,${i.InternshipID},${i.StudentID},${i.Company},${i.Role},,,${i.StartDate},${i.EndDate}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'report.csv';
+        link.click();
+      });
+    }
+    loadStats();
+    loadTables();
+  </script>
+</body>
+</html>

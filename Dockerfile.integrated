@@ -5,13 +5,16 @@ FROM node:20
 WORKDIR /app
 
 # Copy package.json and package-lock.json first (better caching)
-COPY package*.json ./
+COPY internship-api/package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy the rest of the project files
-COPY . .
+# Copy the backend files
+COPY internship-api/ .
+
+# Copy frontend files to be served as static content
+COPY frontend/ ./frontend/
 
 # Expose port the app runs on
 EXPOSE 3000

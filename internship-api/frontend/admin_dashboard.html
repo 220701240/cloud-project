@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f6f8;
+    }
+    header {
+      background: #dc3545;
+      color: white;
+      padding: 15px;
+      text-align: center;
+    }
+    nav {
+      background: #343a40;
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+    }
+    nav a {
+      color: white;
+      margin: 0 15px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    section {
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background: #dc3545;
+      color: white;
+    }
+    button {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    form input {
+      padding: 5px;
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <script>
+    // Auth check: Only allow admin
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+    if (!token || role !== 'admin') {
+      window.location.href = 'login.html';
+    }
+    function logout() {
+      localStorage.clear();
+      window.location.href = 'login.html';
+    }
+  </script>
+
+  <header>
+    <h1>Admin Dashboard</h1>
+  </header>
+
+  <nav>
+  <a href="#manageStudents">Manage Students</a>
+  <a href="#manageFaculty">Manage Faculty</a>
+  <a href="#placements">Placements</a>
+  <a href="#internships">Internships</a>
+  <a href="#" onclick="logout()">Logout</a>
+  </nav>
+
+  <section id="manageStudents" class="card">
+    <h2>Manage Students</h2>
+    <form onsubmit="return addStudent()">
+      <input type="text" id="studentName" placeholder="Full Name" required>
+      <input type="email" id="studentEmail" placeholder="Email" required>
+      <button type="submit">Add Student</button>
+    </form>
+    <table>
+      <thead>
+        <tr>
+          <th>Student Name</th>
+          <th>Email</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="studentTable">
+        <tr>
+          <td>John Doe</td>
+          <td>john@example.com</td>
+          <td><button onclick="deleteStudent(this)">Delete</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="manageFaculty" class="card">
+    <h2>Manage Faculty</h2>
+    <form onsubmit="return addFaculty()">
+      <input type="text" id="facultyName" placeholder="Faculty Name" required>
+      <input type="email" id="facultyEmail" placeholder="Email" required>
+      <button type="submit">Add Faculty</button>
+    </form>
+    <table>
+      <thead>
+        <tr>
+          <th>Faculty Name</th>
+          <th>Email</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="facultyTable">
+        <tr>
+          <td>Dr. Smith</td>
+          <td>smith@college.com</td>
+          <td><button onclick="deleteFaculty(this)">Delete</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="placements" class="card">
+    <h2>Placements Overview</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Company</th>
+          <th>Role</th>
+          <th>Package</th>
+        </tr>
+      </thead>
+      <tbody id="placementTable">
+        <tr>
+          <td>John Doe</td>
+          <td>Google</td>
+          <td>SDE</td>
+          <td>12 LPA</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="internships" class="card">
+    <h2>Internships Overview</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Company</th>
+          <th>Role</th>
+          <th>Duration</th>
+        </tr>
+      </thead>
+      <tbody id="internshipTable">
+        <tr>
+          <td>Jane Doe</td>
+          <td>Amazon</td>
+          <td>Web Dev Intern</td>
+          <td>3 months</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <script>
+    function addStudent() {
+      const name = document.getElementById("studentName").value;
+      const email = document.getElementById("studentEmail").value;
+      let row = `<tr><td>${name}</td><td>${email}</td>
+        <td><button onclick="deleteStudent(this)">Delete</button></td></tr>`;
+      document.getElementById("studentTable").innerHTML += row;
+      document.getElementById("studentName").value = "";
+      document.getElementById("studentEmail").value = "";
+      return false;
+    }
+
+    function deleteStudent(btn) {
+      btn.parentElement.parentElement.remove();
+    }
+
+    function addFaculty() {
+      const name = document.getElementById("facultyName").value;
+      const email = document.getElementById("facultyEmail").value;
+      let row = `<tr><td>${name}</td><td>${email}</td>
+        <td><button onclick="deleteFaculty(this)">Delete</button></td></tr>`;
+      document.getElementById("facultyTable").innerHTML += row;
+      document.getElementById("facultyName").value = "";
+      document.getElementById("facultyEmail").value = "";
+      return false;
+    }
+
+    function deleteFaculty(btn) {
+      btn.parentElement.parentElement.remove();
+    }
+  </script>
+
+</body>
+</html>

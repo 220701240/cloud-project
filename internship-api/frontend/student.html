@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student - Placement Tracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; background: #f9f9f9; }
+    h1 { color: #2c3e50; }
+    form { background: #fff; padding: 20px; border-radius: 8px; width: 400px; }
+    label { display: block; margin: 10px 0 5px; font-weight: bold; }
+    input, textarea { width: 100%; padding: 8px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; }
+    button { background: #27ae60; color: #fff; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+    button:hover { background: #1e8449; }
+    .nav-buttons { margin-top: 20px; }
+    .nav-buttons button { margin-right: 10px; background: #3498db; }
+    .nav-buttons button.logout { background: #e74c3c; }
+  </style>
+</head>
+<body>
+ <h2>Add Student</h2>
+<form id="studentForm">
+  <input type="text" id="rollNumber" placeholder="Roll Number" required><br>
+  <input type="text" id="firstName" placeholder="First Name" required><br>
+  <input type="text" id="lastName" placeholder="Last Name" required><br>
+  <input type="email" id="email" placeholder="Email" required><br>
+  <input type="file" id="resumeFile" accept=".pdf,.doc,.docx" required><br>
+  <button type="submit">Add Student</button>
+</form>
+
+<h2>Student List</h2>
+<ul id="studentList"></ul>
+
+<script>
+  async function loadStudents() {
+    const res = await fetch("/api/students");
+    const students = await res.json();
+    const list = document.getElementById("studentList");
+    list.innerHTML = "";
+    students.forEach(s => {
+      const li = document.createElement("li");
+      li.innerHTML = `
+        ${s.RollNumber} - ${s.FirstName} ${s.LastName} (${s.Email})
+        [<a href="${s.ResumeUrl}" target="_blank">Resume</a>]
+      `;
+      list.appendChild(li);
+    });
+  }
+
+  document.getElementById("studentForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const rollNumber = document.getElementById("rollNumber").value;
+    const firstName = document.getElementById("firstName").value;
+    const lastName = document.getElementById("lastName").value;
+    const email = document.getElementById("email").value;
+    const file = document.getElementById("resumeFile").files[0];
+
+    if (!file) {
+      alert("Please upload a resume file");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function() {
+  try {
+    if (reader.result) {
+      const base64 = reader.result.split(",")[1]; // strip prefix
+
+      const studentData = {
+        rollNumber,
+        firstName,
+        lastName,
+        email,
+        resumeFileName: file.name,
+        resumeContent: base64
+      };
+
+      const res = await fetch("/api/students", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(studentData)
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        alert("Student added successfully!");
+        loadStudents();
+        e.target.reset();
+      } else {
+        const err = await res.json();
+        alert("Error: " + (err.error || JSON.stringify(err)));
+      }
+    } else {
+      console.error("Failed to read file content");
+      alert("Error: Failed to read file content");
+    }
+  } catch (err) {
+    console.error("Upload error:", err);
+    alert("Unexpected error: " + err.message);
+  }
+};
+
+    reader.readAsDataURL(file);
+  });
+
+  loadStudents();
+</script>
+</body>
+</html>

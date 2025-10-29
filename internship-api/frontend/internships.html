@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Internships - Placement Tracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; background: #f9f9f9; }
+    form { background: #fff; padding: 20px; border-radius: 8px; width: 400px; }
+    label { display: block; margin: 10px 0 5px; font-weight: bold; }
+    input, select { width: 100%; padding: 8px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; }
+    button { background: #27ae60; color: #fff; border: none; padding: 10px; border-radius: 5px; cursor: pointer; }
+    button:hover { background: #1e8449; }
+  </style>
+</head>
+<body>
+  <h2>Add Internship</h2>
+  <form id="internshipForm">
+  <label for="student">Select Student:</label>
+  <select id="student" required></select>
+
+  <label for="company">Select Company:</label>
+  <select id="company" required></select>
+
+  <label>Role:</label>
+  <input type="text" id="role" required>
+
+  <label>Start Date:</label>
+  <input type="date" id="startDate" required>
+
+  <label>End Date:</label>
+  <input type="date" id="endDate" required>
+
+  <button type="submit">Add Internship</button>
+  </form>
+
+  <h2>Internship List</h2>
+  <ul id="internshipList"></ul>
+
+  <script>
+
+    async function loadStudents() {
+      const res = await fetch("/api/students");
+      const students = await res.json();
+      const select = document.getElementById("student");
+      select.innerHTML = "";
+      students.forEach(s => {
+        const option = document.createElement("option");
+        option.value = s.StudentID;
+        option.textContent = `${s.RollNumber} - ${s.FirstName} ${s.LastName}`;
+        select.appendChild(option);
+      });
+    }
+
+    async function loadCompanies() {
+      const res = await fetch("/api/companies");
+      const companies = await res.json();
+      const select = document.getElementById("company");
+      select.innerHTML = "";
+      companies.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.Name;
+        option.textContent = c.Name;
+        select.appendChild(option);
+      });
+    }
+
+    async function loadInternships() {
+      const res = await fetch("/api/internships");
+      const internships = await res.json();
+      const list = document.getElementById("internshipList");
+      list.innerHTML = "";
+      internships.forEach(i => {
+        const li = document.createElement("li");
+        li.textContent = `${i.RollNumber} - ${i.FirstName} ${i.LastName} | ${i.Company} (${i.Role}) [${i.StartDate} - ${i.EndDate}]`;
+        list.appendChild(li);
+      });
+    }
+
+    document.getElementById("internshipForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const studentId = document.getElementById("student").value;
+      const company = document.getElementById("company").value;
+      const role = document.getElementById("role").value;
+      const startDate = document.getElementById("startDate").value;
+      const endDate = document.getElementById("endDate").value;
+
+      const res = await fetch("/api/internships", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId, company, role, startDate, endDate })
+      });
+
+      if (res.ok) {
+        alert("Internship added successfully!");
+        loadInternships();
+        e.target.reset();
+      } else {
+        alert("Error adding internship");
+      }
+    });
+
+    loadStudents();
+    loadCompanies();
+    loadInternships();
+  </script>
+</body>
+</html>

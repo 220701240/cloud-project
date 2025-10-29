@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports - Placement Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <!-- Application Status Distribution -->
+  <section>
+    <h2>Application Status Distribution</h2>
+    <canvas id="statusChart" width="400" height="200"></canvas>
+  </section>
+  <h1>Reports & Analytics</h1>
+
+  <!-- Placement Statistics -->
+  <section>
+    <h2>Placement Statistics</h2>
+    <canvas id="placementChart" width="400" height="200"></canvas>
+  </section>
+
+  <!-- Internship Statistics -->
+  <section>
+    <h2>Internship Statistics</h2>
+    <canvas id="internshipChart" width="400" height="200"></canvas>
+  </section>
+
+  <!-- Company-Wise Placements -->
+  <section>
+    <h2>Company-Wise Placements</h2>
+    <canvas id="companyChart" width="400" height="200"></canvas>
+  </section>
+
+  <script>
+    // Application Status Distribution
+    async function loadStatusChart() {
+      const res = await fetch('/api/applications', { headers: { 'Authorization': localStorage.getItem('token') ? 'Bearer ' + localStorage.getItem('token') : undefined } });
+      const data = await res.json();
+      const statusCounts = {};
+      data.forEach(app => {
+        statusCounts[app.Status] = (statusCounts[app.Status] || 0) + 1;
+      });
+      new Chart(document.getElementById('statusChart'), {
+        type: 'pie',
+        data: {
+          labels: Object.keys(statusCounts),
+          datasets: [{
+            data: Object.values(statusCounts),
+            backgroundColor: ['#4CAF50', '#F44336', '#FFC107', '#2196F3', '#9C27B0']
+          }]
+        }
+      });
+    }
+    // Placement Stats (using analytics endpoint)
+    async function loadPlacementStats() {
+      const res = await fetch('/api/analytics/placement');
+      const data = await res.json();
+      const placed = data.placed;
+      const notPlaced = data.total - placed;
+      new Chart(document.getElementById('placementChart'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Placed', 'Not Placed'],
+          datasets: [{
+            data: [placed, notPlaced],
+            backgroundColor: ['#4CAF50', '#F44336']
+          }]
+        }
+      });
+    }
+
+    // Internship Stats (using analytics endpoint)
+    async function loadInternshipStats() {
+      const res = await fetch('/api/analytics/internship');
+      const stats = await res.json();
+      const statusMap = { Ongoing: 0, Completed: 0, Dropped: 0 };
+      stats.forEach(s => {
+        if (statusMap.hasOwnProperty(s.Status)) statusMap[s.Status] = s.Count;
+      });
+      new Chart(document.getElementById('internshipChart'), {
+        type: 'bar',
+        data: {
+          labels: ['Ongoing', 'Completed', 'Dropped'],
+          datasets: [{
+            label: 'Internships',
+            data: [statusMap.Ongoing, statusMap.Completed, statusMap.Dropped],
+            backgroundColor: ['#2196F3', '#4CAF50', '#F44336']
+          }]
+        }
+      });
+    }
+
+    // Company-wise Placements (using analytics endpoint)
+    async function loadCompanyStats() {
+      const res = await fetch('/api/analytics/company-placements');
+      const stats = await res.json();
+      const labels = stats.map(s => s.Company);
+      const data = stats.map(s => s.Count);
+      new Chart(document.getElementById('companyChart'), {
+        type: 'pie',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            backgroundColor: ['#FF9800', '#3F51B5', '#009688', '#E91E63', '#9C27B0']
+          }]
+        }
+      });
+    }
+
+  // Initialize charts
+  loadPlacementStats();
+  loadInternshipStats();
+  loadCompanyStats();
+  loadStatusChart();
+  </script>
+</body>
+</html> 

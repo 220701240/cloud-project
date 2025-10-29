@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Placements - Placement Tracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; background: #f9f9f9; }
+    form { background: #fff; padding: 20px; border-radius: 8px; width: 400px; }
+    label { display: block; margin: 10px 0 5px; font-weight: bold; }
+    input, select { width: 100%; padding: 8px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; }
+    button { background: #27ae60; color: #fff; border: none; padding: 10px; border-radius: 5px; cursor: pointer; }
+    button:hover { background: #1e8449; }
+  </style>
+</head>
+<body>
+  <h2>Add Placement</h2>
+  <form id="placementForm">
+    <label for="student">Select Student:</label>
+    <select id="student" required></select>
+
+    <label for="company">Select Company:</label>
+    <select id="company" required></select>
+
+    <label>Package (CTC):</label>
+    <input type="number" id="packageAmount" step="0.01" required>
+
+    <label>Status:</label>
+    <select id="status" required>
+      <option value="Placed">Placed</option>
+      <option value="Pending">Pending</option>
+      <option value="Rejected">Rejected</option>
+    </select>
+
+    <button type="submit">Add Placement</button>
+  </form>
+
+  <h2>Placement List</h2>
+  <ul id="placementList"></ul>
+
+  <script>
+
+    async function loadStudents() {
+      const res = await fetch("/api/students");
+      const students = await res.json();
+      const select = document.getElementById("student");
+      select.innerHTML = "";
+      students.forEach(s => {
+        const option = document.createElement("option");
+        option.value = s.StudentID;
+        option.textContent = `${s.RollNumber} - ${s.FirstName} ${s.LastName}`;
+        select.appendChild(option);
+      });
+    }
+
+    async function loadCompanies() {
+      const res = await fetch("/api/companies");
+      const companies = await res.json();
+      const select = document.getElementById("company");
+      select.innerHTML = "";
+      companies.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.Name;
+        option.textContent = c.Name;
+        select.appendChild(option);
+      });
+    }
+
+    async function loadPlacements() {
+      const res = await fetch("/api/placements");
+      const placements = await res.json();
+      const list = document.getElementById("placementList");
+      list.innerHTML = "";
+      placements.forEach(p => {
+        const li = document.createElement("li");
+        li.textContent = `${p.RollNumber} - ${p.FirstName} ${p.LastName} | ${p.Company} | Package: ₹${p.Package} | Status: ${p.Status}`;
+        list.appendChild(li);
+      });
+    }
+
+    document.getElementById("placementForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const studentId = document.getElementById("student").value;
+      const company = document.getElementById("company").value;
+      const packageAmount = document.getElementById("packageAmount").value;
+      const status = document.getElementById("status").value;
+
+      const res = await fetch("/api/placements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId, company, packageAmount, status })
+      });
+
+      if (res.ok) {
+        alert("Placement added successfully!");
+        loadPlacements();
+        e.target.reset();
+      } else {
+        alert("Error adding placement");
+      }
+    });
+
+    loadStudents();
+    loadCompanies();
+    loadPlacements();
+  </script>
+</body>
+</html>

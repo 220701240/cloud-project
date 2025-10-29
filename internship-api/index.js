@@ -8,6 +8,12 @@ import multer from 'multer';
 const upload = multer({ dest: 'uploads/' });
 import fs from 'fs';
 import * as pdfParse from 'pdf-parse';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 // pdf-parse v2.x exports PDFParse class, not a default function
 import { TextAnalyticsClient, AzureKeyCredential } from "@azure/ai-text-analytics";
 
@@ -71,7 +77,6 @@ import {
   BlobSASPermissions,
   generateBlobSASQueryParameters
 } from "@azure/storage-blob";
-import path from "path";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
 import nodemailer from "nodemailer";

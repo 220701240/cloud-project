@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f6f9;
+    }
+    header {
+      background: #007bff;
+      color: white;
+      padding: 15px;
+      text-align: center;
+    }
+    nav {
+      background: #343a40;
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+    }
+    nav a {
+      color: white;
+      margin: 0 15px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    section {
+      padding: 20px;
+    }
+    .card {
+      background: #fff;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background: #007bff;
+      color: white;
+    }
+    button {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button.delete {
+      background: #dc3545;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Admin Dashboard</h1>
+  </header>
+
+  <nav>
+  <a href="#faculty">Faculty Management</a>
+  <a href="#students">Student Management</a>
+  <a href="#records">Placement Records</a>
+  <a href="dashboard.html">Dashboard & Reports</a>
+  <a href="chatbot.html">QnA Chatbot</a>
+  <a href="login.html">Logout</a>
+  </nav>
+
+  <section id="faculty" class="card">
+    <h2>Faculty Management</h2>
+    <form id="facultyForm">
+      <input type="text" id="facultyName" placeholder="Name" required>
+      <input type="email" id="facultyEmail" placeholder="Email" required>
+      <input type="text" id="facultyDept" placeholder="Department" required>
+      <button type="submit">Add Faculty</button>
+    </form>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Department</th>
+        </tr>
+      </thead>
+      <tbody id="facultyTable"></tbody>
+    </table>
+  </section>
+
+  <section id="students" class="card">
+    <h2>Student Management</h2>
+    <form id="studentForm">
+  <input type="text" id="studentRoll" placeholder="Roll Number" required>
+  <input type="text" id="studentFirstName" placeholder="First Name" required>
+  <input type="text" id="studentLastName" placeholder="Last Name" required>
+  <input type="email" id="studentEmail" placeholder="Email" required>
+  <label for="studentResume">Resume (PDF):</label>
+  <input type="file" id="studentResume" accept="application/pdf" required>
+  <button type="submit">Add Student</button>
+    </form>
+    <table>
+      <thead>
+        <tr>
+          <th>Roll Number</th>
+          <th>First Name</th>
+          <th>Last Name</th>
+          <th>Email</th>
+        </tr>
+      </thead>
+      <tbody id="studentTable"></tbody>
+    </table>
+  </section>
+
+  <section id="records" class="card">
+    <h2>Internship Records</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>InternshipID</th>
+          <th>StudentID</th>
+          <th>Company</th>
+          <th>Role</th>
+          <th>Start Date</th>
+          <th>End Date</th>
+        </tr>
+      </thead>
+      <tbody id="internshipTable"></tbody>
+    </table>
+    <h2>Placement Records</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>PlacementID</th>
+          <th>StudentID</th>
+          <th>Company</th>
+          <th>Package</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="placementTable"></tbody>
+    </table>
+  </section>
+
+  <script>
+    document.getElementById("facultyForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const data = {
+        name: document.getElementById("facultyName").value,
+        email: document.getElementById("facultyEmail").value,
+        department: document.getElementById("facultyDept").value
+      };
+      try {
+        const res = await fetch("/api/faculty", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+        if (res.ok) {
+          alert("Faculty added successfully!");
+          this.reset();
+          loadFaculty();
+        } else {
+          alert("Error adding faculty.");
+        }
+      } catch (error) {
+        alert("Server error. Please try again later.");
+      }
+    });
+
+    document.getElementById("studentForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const rollNumber = document.getElementById("studentRoll").value;
+      const firstName = document.getElementById("studentFirstName").value;
+      const lastName = document.getElementById("studentLastName").value;
+      const email = document.getElementById("studentEmail").value;
+      const resumeFile = document.getElementById("studentResume").files[0];
+
+      if (!resumeFile) {
+        alert("Please upload a resume PDF.");
+        return;
+      }
+
+      // Read file as base64
+      const reader = new FileReader();
+      reader.onload = async function(evt) {
+        const resumeContent = evt.target.result.split(",")[1]; // Remove data:...base64,
+        const resumeFileName = `${rollNumber}_${Date.now()}.pdf`;
+        const data = {
+          rollNumber,
+          firstName,
+          lastName,
+          email,
+          resumeFileName,
+          resumeContent
+        };
+        try {
+          const res = await fetch("/api/students", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+          });
+          if (res.ok) {
+            alert("Student added successfully!");
+            document.getElementById("studentForm").reset();
+            loadStudents();
+          } else {
+            alert("Error adding student.");
+          }
+        } catch (error) {
+          alert("Server error. Please try again later.");
+        }
+      };
+      reader.readAsDataURL(resumeFile);
+    });
+
+    async function loadFaculty() {
+      const res = await fetch("/api/faculty");
+      const data = await res.json();
+      const table = document.getElementById("facultyTable");
+      table.innerHTML = "";
+      data.forEach(faculty => {
+        const row = table.insertRow();
+        row.insertCell(0).innerText = faculty.Name || faculty.name;
+        row.insertCell(1).innerText = faculty.Email || faculty.email;
+        row.insertCell(2).innerText = faculty.Department || faculty.department;
+      });
+    }
+
+    async function loadStudents() {
+      const res = await fetch("/api/students");
+      const data = await res.json();
+      const table = document.getElementById("studentTable");
+      table.innerHTML = "";
+      data.forEach(student => {
+        const row = table.insertRow();
+        row.insertCell(0).innerText = student.RollNumber || student.rollNumber;
+        row.insertCell(1).innerText = student.FirstName || student.firstName;
+        row.insertCell(2).innerText = student.LastName || student.lastName;
+        row.insertCell(3).innerText = student.Email || student.email;
+      });
+    }
+
+    async function loadInternships() {
+      const res = await fetch("/api/internships");
+      const data = await res.json();
+      const table = document.getElementById("internshipTable");
+      table.innerHTML = "";
+      data.forEach(intern => {
+        const row = table.insertRow();
+        row.insertCell(0).innerText = intern.InternshipID;
+        row.insertCell(1).innerText = intern.StudentID;
+        row.insertCell(2).innerText = intern.Company;
+        row.insertCell(3).innerText = intern.Role;
+        row.insertCell(4).innerText = intern.StartDate;
+        row.insertCell(5).innerText = intern.EndDate;
+      });
+    }
+
+    async function loadPlacements() {
+      const res = await fetch("/api/placements");
+      const data = await res.json();
+      const table = document.getElementById("placementTable");
+      table.innerHTML = "";
+      data.forEach(place => {
+        const row = table.insertRow();
+        row.insertCell(0).innerText = place.PlacementID;
+        row.insertCell(1).innerText = place.StudentID;
+        row.insertCell(2).innerText = place.Company;
+        row.insertCell(3).innerText = place.Package;
+        row.insertCell(4).innerText = place.Status;
+      });
+    }
+
+    // Initial load
+    loadFaculty();
+    loadStudents();
+    loadInternships();
+    loadPlacements();
+  </script>
+
+</body>
+</html>
