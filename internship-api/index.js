@@ -133,7 +133,15 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "frontend"))); // serve static files from container
 
+// Test endpoint to verify middleware is working
+app.post('/api/test', (req, res) => {
+  console.log('Test endpoint hit, req.body:', req.body);
+  res.json({ message: 'Test successful', body: req.body });
+});
+
 app.post('/api/register', async (req, res) => {
+  console.log('Register endpoint hit, req.body:', req.body);
+  console.log('Raw body type:', typeof req.body);
   const { username, password, fullName, email, role } = req.body;
   if (!username || !password || !fullName || !email || !role) return res.status(400).json({ error: 'Missing fields' });
   try {
@@ -142,10 +150,10 @@ app.post('/api/register', async (req, res) => {
     await pool.request()
       .input('username', sql.NVarChar, username)
       .input('passwordHash', sql.NVarChar, hash)
-      .input('fullName', sql.NVarChar, fullName)
+      .input('fullname', sql.NVarChar, fullName)
       .input('email', sql.NVarChar, email)
       .input('role', sql.NVarChar, role)
-      .query('INSERT INTO Users (Username, PasswordHash, FullName, Email, Role) VALUES (@username, @passwordHash, @fullName, @email, @role)');
+      .query('INSERT INTO Users (Username, PasswordHash, Fullname, Email, Role) VALUES (@username, @passwordHash, @fullname, @email, @role)');
     res.json({ message: 'User registered successfully' });
   } catch (err) {
     if (err.message && err.message.includes('UNIQUE')) {
@@ -169,8 +177,8 @@ app.post('/api/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
     const match = await bcrypt.compare(password, user.PasswordHash);
     if (!match) return res.status(401).json({ error: 'Invalid credentials' });
-  const token = jwt.sign({ userId: user.UserID, role: user.Role, username: user.Username, fullName: user.FullName }, JWT_SECRET, { expiresIn: '2h' });
-    res.json({ token, role: user.Role, fullName: user.FullName, userId: user.UserID });
+  const token = jwt.sign({ userId: user.UserID, role: user.Role, username: user.Username, fullName: user.Fullname }, JWT_SECRET, { expiresIn: '2h' });
+    res.json({ token, role: user.Role, fullName: user.Fullname, userId: user.UserID });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -181,7 +189,7 @@ app.get('/api/me', authenticateToken, async (req, res) => {
     const pool = await getPool();
     const result = await pool.request()
       .input('userId', sql.Int, req.user.userId)
-      .query('SELECT UserID, Username, FullName, Role, Email FROM Users WHERE UserID=@userId');
+      .query('SELECT UserID, Username, Fullname, Role, Email FROM Users WHERE UserID=@userId');
     res.json(result.recordset[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
