@@ -121,6 +121,17 @@ function authorizeRoles(...roles) {
   };
 }
 
+// Setup middleware BEFORE routes
+app.use(cors({
+  origin: process.env.FRONTEND_ORIGIN || '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.static(path.join(__dirname, "frontend"))); // serve static files from container
 
 app.post('/api/register', async (req, res) => {
   const { username, password, fullName, email, role } = req.body;
@@ -194,22 +205,6 @@ async function sendStatusEmail(to, subject, text) {
 
 // Security & hardening middleware
 // app.use(helmet()); // Temporarily disabled - package not in current image
-
-// CORS with allowlist using FRONTEND_ORIGIN (comma-separated domains)
-const allowedOrigins = (process.env.FRONTEND_ORIGIN || "").split(',').map(s => s.trim()).filter(Boolean);
-app.use(cors({
-  origin: allowedOrigins.length ? allowedOrigins : '*',
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  credentials: true,
-}));
-
-// Basic rate limiting
-// const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 }); // Temporarily disabled
-// app.use(limiter); // Temporarily disabled
-
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-app.use(express.static(path.join(__dirname, "frontend"))); // serve static files from container
 
 const dbConfig = {
   user: process.env.AZURE_SQL_USER,
