@@ -62,17 +62,38 @@
       const fullName = document.getElementById("fullname").value;
       const username = document.getElementById("username").value;
       const password = document.getElementById("password").value;
+      
+      // Enhanced validation
       if (!role || !fullName || !username || !password) {
         alert("Please fill all fields.");
         return false;
       }
+      
+      if (fullName.trim().length < 2) {
+        alert("Full name must be at least 2 characters long.");
+        return false;
+      }
+      
+      if (username.trim().length < 3) {
+        alert("Username must be at least 3 characters long.");
+        return false;
+      }
+      
+      if (password.length < 6) {
+        alert("Password must be at least 6 characters long.");
+        return false;
+      }
+      
       try {
+        console.log("Sending registration data:", { username, fullName, role });
         const res = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password, fullName, role })
+          body: JSON.stringify({ username: username.trim(), password, fullName: fullName.trim(), role })
         });
         const data = await res.json();
+        console.log("Registration response:", data);
+        
         if (res.ok) {
           alert("Registration successful! Please login.");
           window.location.href = "login.html";
@@ -80,7 +101,8 @@
           alert(data.error || "Registration failed.");
         }
       } catch (err) {
-        alert("Registration failed.");
+        console.error("Registration error:", err);
+        alert("Registration failed. Please check your connection and try again.");
       }
       return false;
     }

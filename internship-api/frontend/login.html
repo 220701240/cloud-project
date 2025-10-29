@@ -61,17 +61,33 @@
       const role = document.getElementById("role").value;
       const username = document.getElementById("username").value;
       const password = document.getElementById("password").value;
+      
+      // Enhanced validation
       if (!role || !username || !password) {
         alert("Please fill all fields.");
         return false;
       }
+      
+      if (username.trim().length < 3) {
+        alert("Please enter a valid username.");
+        return false;
+      }
+      
+      if (password.length < 6) {
+        alert("Password must be at least 6 characters long.");
+        return false;
+      }
+      
       try {
+        console.log("Attempting login for:", { username: username.trim(), role });
         const res = await fetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ username: username.trim(), password })
         });
         const data = await res.json();
+        console.log("Login response:", data);
+        
         if (res.ok && data.role === role) {
           localStorage.setItem('token', data.token);
           localStorage.setItem('role', data.role);
@@ -85,10 +101,17 @@
             window.location.href = "student_dashboard.html";
           }
         } else {
-          alert(data.error || "Invalid credentials or role.");
+          if (res.status === 401) {
+            alert("Invalid username or password.");
+          } else if (res.status === 403) {
+            alert("Access denied for selected role.");
+          } else {
+            alert(data.error || "Login failed. Please try again.");
+          }
         }
       } catch (err) {
-        alert("Login failed.");
+        console.error("Login error:", err);
+        alert("Login failed. Please check your connection and try again.");
       }
       return false;
     }
