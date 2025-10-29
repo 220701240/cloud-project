@@ -314,7 +314,7 @@
           data.forEach(intern => {
             const row = table.insertRow();
             row.insertCell(0).innerText = intern.InternshipID;
-            row.insertCell(1).innerText = intern.StudentID;
+            row.insertCell(1).innerText = intern.RollNumber || intern.StudentID; // Use RollNumber as StudentID
             row.insertCell(2).innerText = intern.Company;
             row.insertCell(3).innerText = intern.Role;
             row.insertCell(4).innerText = intern.StartDate;
@@ -353,7 +353,7 @@
           data.forEach(place => {
             const row = table.insertRow();
             row.insertCell(0).innerText = place.PlacementID;
-            row.insertCell(1).innerText = place.StudentID;
+            row.insertCell(1).innerText = place.RollNumber || place.StudentID; // Use RollNumber as StudentID
             row.insertCell(2).innerText = place.Company;
             row.insertCell(3).innerText = place.Package;
             row.insertCell(4).innerText = place.Status;
