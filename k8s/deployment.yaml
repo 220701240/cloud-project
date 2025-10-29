@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: internship-api
+  namespace: placement-tracker
+  labels:
+    app: internship-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: internship-api
+  template:
+    metadata:
+      labels:
+        app: internship-api
+    spec:
+      containers:
+      - name: api
+        image: cloudprojectacr.azurecr.io/internship-api:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: APPINSIGHTS_INSTRUMENTATIONKEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: appinsights-key
+        - name: AZURE_SQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: sql-user
+        - name: AZURE_SQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: sql-password
+        - name: AZURE_SQL_SERVER
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: sql-server
+        - name: AZURE_SQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: sql-database
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: jwt-secret
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
