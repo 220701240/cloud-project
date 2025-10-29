@@ -123,17 +123,18 @@ function authorizeRoles(...roles) {
 
 
 app.post('/api/register', async (req, res) => {
-  const { username, password, fullName, role } = req.body;
-  if (!username || !password || !fullName || !role) return res.status(400).json({ error: 'Missing fields' });
+  const { username, password, fullName, email, role } = req.body;
+  if (!username || !password || !fullName || !email || !role) return res.status(400).json({ error: 'Missing fields' });
   try {
     const pool = await getPool();
     const hash = await bcrypt.hash(password, 10);
     await pool.request()
       .input('username', sql.NVarChar, username)
-      .input('password', sql.NVarChar, hash)
-      .input('name', sql.NVarChar, fullName)
+      .input('passwordHash', sql.NVarChar, hash)
+      .input('fullName', sql.NVarChar, fullName)
+      .input('email', sql.NVarChar, email)
       .input('role', sql.NVarChar, role)
-      .query('INSERT INTO register (username, password, name, role) VALUES (@username, @password, @name, @role)');
+      .query('INSERT INTO Users (Username, PasswordHash, FullName, Email, Role) VALUES (@username, @passwordHash, @fullName, @email, @role)');
     res.json({ message: 'User registered successfully' });
   } catch (err) {
     if (err.message && err.message.includes('UNIQUE')) {
