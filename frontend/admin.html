@@ -233,61 +233,149 @@
     });
 
     async function loadFaculty() {
-      const res = await fetch("/api/faculty");
-      const data = await res.json();
-      const table = document.getElementById("facultyTable");
-      table.innerHTML = "";
-      data.forEach(faculty => {
+      try {
+        const res = await fetch("/api/faculty");
+        const data = await res.json();
+        const table = document.getElementById("facultyTable");
+        table.innerHTML = "";
+        
+        if (res.ok && Array.isArray(data)) {
+          data.forEach(faculty => {
+            const row = table.insertRow();
+            row.insertCell(0).innerText = faculty.Name || faculty.name;
+            row.insertCell(1).innerText = faculty.Email || faculty.email;
+            row.insertCell(2).innerText = faculty.Department || faculty.department;
+          });
+        } else {
+          const row = table.insertRow();
+          row.insertCell(0).innerText = "Error loading faculty data";
+          row.insertCell(1).innerText = data.error || "Database connection issue";
+          row.insertCell(2).innerText = "";
+        }
+      } catch (err) {
+        console.error("Faculty load error:", err);
+        const table = document.getElementById("facultyTable");
         const row = table.insertRow();
-        row.insertCell(0).innerText = faculty.Name || faculty.name;
-        row.insertCell(1).innerText = faculty.Email || faculty.email;
-        row.insertCell(2).innerText = faculty.Department || faculty.department;
-      });
+        row.insertCell(0).innerText = "Error loading faculty";
+        row.insertCell(1).innerText = "Network or server error";
+        row.insertCell(2).innerText = "";
+      }
     }
 
     async function loadStudents() {
-      const res = await fetch("/api/students");
-      const data = await res.json();
-      const table = document.getElementById("studentTable");
-      table.innerHTML = "";
-      data.forEach(student => {
+      try {
+        const res = await fetch("/api/students");
+        const data = await res.json();
+        const table = document.getElementById("studentTable");
+        table.innerHTML = "";
+        
+        if (res.ok && Array.isArray(data)) {
+          data.forEach(student => {
+            const row = table.insertRow();
+            row.insertCell(0).innerText = student.RollNumber || student.rollNumber;
+            row.insertCell(1).innerText = student.FirstName || student.firstName;
+            row.insertCell(2).innerText = student.LastName || student.lastName;
+            row.insertCell(3).innerText = student.Email || student.email;
+          });
+        } else if (res.ok && data.value && Array.isArray(data.value)) {
+          data.value.forEach(student => {
+            const row = table.insertRow();
+            row.insertCell(0).innerText = student.RollNumber || student.rollNumber;
+            row.insertCell(1).innerText = student.FirstName || student.firstName;
+            row.insertCell(2).innerText = student.LastName || student.lastName;
+            row.insertCell(3).innerText = student.Email || student.email;
+          });
+        } else {
+          const row = table.insertRow();
+          row.insertCell(0).innerText = "Error loading students";
+          row.insertCell(1).innerText = data.error || "Database connection issue";
+          row.insertCell(2).innerText = "";
+          row.insertCell(3).innerText = "";
+        }
+      } catch (err) {
+        console.error("Students load error:", err);
+        const table = document.getElementById("studentTable");
         const row = table.insertRow();
-        row.insertCell(0).innerText = student.RollNumber || student.rollNumber;
-        row.insertCell(1).innerText = student.FirstName || student.firstName;
-        row.insertCell(2).innerText = student.LastName || student.lastName;
-        row.insertCell(3).innerText = student.Email || student.email;
-      });
+        row.insertCell(0).innerText = "Error loading students";
+        row.insertCell(1).innerText = "Network or server error";
+        row.insertCell(2).innerText = "";
+        row.insertCell(3).innerText = "";
+      }
     }
 
     async function loadInternships() {
-      const res = await fetch("/api/internships");
-      const data = await res.json();
-      const table = document.getElementById("internshipTable");
-      table.innerHTML = "";
-      data.forEach(intern => {
+      try {
+        const res = await fetch("/api/internships");
+        const data = await res.json();
+        const table = document.getElementById("internshipTable");
+        table.innerHTML = "";
+        
+        if (res.ok && Array.isArray(data)) {
+          data.forEach(intern => {
+            const row = table.insertRow();
+            row.insertCell(0).innerText = intern.InternshipID;
+            row.insertCell(1).innerText = intern.StudentID;
+            row.insertCell(2).innerText = intern.Company;
+            row.insertCell(3).innerText = intern.Role;
+            row.insertCell(4).innerText = intern.StartDate;
+            row.insertCell(5).innerText = intern.EndDate;
+          });
+        } else {
+          const row = table.insertRow();
+          row.insertCell(0).innerText = "Error loading internships";
+          row.insertCell(1).innerText = data.error || "Database connection issue";
+          row.insertCell(2).innerText = "";
+          row.insertCell(3).innerText = "";
+          row.insertCell(4).innerText = "";
+          row.insertCell(5).innerText = "";
+        }
+      } catch (err) {
+        console.error("Internships load error:", err);
+        const table = document.getElementById("internshipTable");
         const row = table.insertRow();
-        row.insertCell(0).innerText = intern.InternshipID;
-        row.insertCell(1).innerText = intern.StudentID;
-        row.insertCell(2).innerText = intern.Company;
-        row.insertCell(3).innerText = intern.Role;
-        row.insertCell(4).innerText = intern.StartDate;
-        row.insertCell(5).innerText = intern.EndDate;
-      });
+        row.insertCell(0).innerText = "Error loading internships";
+        row.insertCell(1).innerText = "Network or server error";
+        row.insertCell(2).innerText = "";
+        row.insertCell(3).innerText = "";
+        row.insertCell(4).innerText = "";
+        row.insertCell(5).innerText = "";
+      }
     }
 
     async function loadPlacements() {
-      const res = await fetch("/api/placements");
-      const data = await res.json();
-      const table = document.getElementById("placementTable");
-      table.innerHTML = "";
-      data.forEach(place => {
+      try {
+        const res = await fetch("/api/placements");
+        const data = await res.json();
+        const table = document.getElementById("placementTable");
+        table.innerHTML = "";
+        
+        if (res.ok && Array.isArray(data)) {
+          data.forEach(place => {
+            const row = table.insertRow();
+            row.insertCell(0).innerText = place.PlacementID;
+            row.insertCell(1).innerText = place.StudentID;
+            row.insertCell(2).innerText = place.Company;
+            row.insertCell(3).innerText = place.Package;
+            row.insertCell(4).innerText = place.Status;
+          });
+        } else {
+          const row = table.insertRow();
+          row.insertCell(0).innerText = "Error loading placements";
+          row.insertCell(1).innerText = data.error || "Database connection issue";
+          row.insertCell(2).innerText = "";
+          row.insertCell(3).innerText = "";
+          row.insertCell(4).innerText = "";
+        }
+      } catch (err) {
+        console.error("Placements load error:", err);
+        const table = document.getElementById("placementTable");
         const row = table.insertRow();
-        row.insertCell(0).innerText = place.PlacementID;
-        row.insertCell(1).innerText = place.StudentID;
-        row.insertCell(2).innerText = place.Company;
-        row.insertCell(3).innerText = place.Package;
-        row.insertCell(4).innerText = place.Status;
-      });
+        row.insertCell(0).innerText = "Error loading placements";
+        row.insertCell(1).innerText = "Network or server error";
+        row.insertCell(2).innerText = "";
+        row.insertCell(3).innerText = "";
+        row.insertCell(4).innerText = "";
+      }
     }
 
     // Initial load
