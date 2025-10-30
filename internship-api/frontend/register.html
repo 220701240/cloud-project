@@ -104,8 +104,29 @@
         console.log("Registration response:", data);
         
         if (res.ok) {
-          alert("Registration successful! Please login.");
-          window.location.href = "login.html";
+          if (data.autoLogin && data.token) {
+            // Auto-login successful - store credentials and redirect
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('role', data.role);
+            localStorage.setItem('fullName', data.fullName);
+            localStorage.setItem('userId', data.userId);
+            
+            alert("Registration successful! Redirecting to your dashboard...");
+            
+            // Redirect based on role
+            if (data.role === "faculty") {
+              window.location.href = "faculty_dashboard.html";
+            } else if (data.role === "student") {
+              window.location.href = "student.html";
+            } else if (data.role === "admin") {
+              window.location.href = "admin_dashboard.html";
+            } else {
+              window.location.href = "login.html";
+            }
+          } else {
+            alert("Registration successful! Please login.");
+            window.location.href = "login.html";
+          }
         } else {
           alert(data.error || "Registration failed.");
         }

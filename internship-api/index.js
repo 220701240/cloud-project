@@ -147,14 +147,28 @@ app.post('/api/register', async (req, res) => {
   try {
     const pool = await getPool();
     const hash = await bcrypt.hash(password, 10);
-    await pool.request()
+    const result = await pool.request()
       .input('username', sql.NVarChar, username)
       .input('passwordHash', sql.NVarChar, hash)
       .input('fullname', sql.NVarChar, fullName)
       .input('email', sql.NVarChar, email)
       .input('role', sql.NVarChar, role)
-      .query('INSERT INTO Users (Username, PasswordHash, Fullname, Email, Role) VALUES (@username, @passwordHash, @fullname, @email, @role)');
-    res.json({ message: 'User registered successfully' });
+      .query('INSERT INTO Users (Username, PasswordHash, Fullname, Email, Role) OUTPUT INSERTED.UserID VALUES (@username, @passwordHash, @fullname, @email, @role)');
+    
+    // Get the newly created user ID
+    const newUserId = result.recordset[0].UserID;
+    
+    // Create a token for the new user (auto-login)
+    const token = jwt.sign({ userId: newUserId, role: role, username: username, fullName: fullName }, JWT_SECRET, { expiresIn: '2h' });
+    
+    res.json({ 
+      message: 'User registered successfully', 
+      token: token,
+      role: role,
+      fullName: fullName,
+      userId: newUserId,
+      autoLogin: true
+    });
   } catch (err) {
     if (err.message && err.message.includes('UNIQUE')) {
       res.status(409).json({ error: 'Username already exists' });
