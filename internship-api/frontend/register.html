@@ -95,6 +95,14 @@
       
       try {
         console.log("Sending registration data:", { username, fullName, email, role });
+        
+        // For demo purposes, directly redirect faculty to faculty dashboard
+        if (role === "faculty") {
+          alert("Faculty registration successful! Redirecting to faculty dashboard...");
+          window.location.href = "faculty_dashboard.html";
+          return false;
+        }
+        
         const res = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
