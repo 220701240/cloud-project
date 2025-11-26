@@ -1,20 +1,22 @@
-# Use Node.js LTS version
-FROM node:20
-
-# Set working directory inside the container
+FROM node:20-alpine AS base
 WORKDIR /app
 
-# Copy package.json and package-lock.json first (better caching)
-COPY package*.json ./
+# Copy package files from the backend folder (build from repo root)
+COPY internship-api/package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install only production dependencies for smaller image
+RUN npm install --production --silent
 
-# Copy the rest of the project files
-COPY . .
+# Copy backend source
+COPY internship-api/ ./
 
-# Expose port the app runs on
+# Copy frontend static assets into the image so Express can serve them
+COPY frontend/ ./frontend/
+
+# Environment and port config
+ENV NODE_ENV=production
+ENV PORT=3000
 EXPOSE 3000
 
-# Start the app
+# Start the server
 CMD ["node", "index.js"]

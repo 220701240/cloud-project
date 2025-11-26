@@ -1,6 +1,7 @@
 // aiService.js
-require('dotenv').config();
-const { TextAnalyticsClient, AzureKeyCredential } = require("@azure/ai-text-analytics");
+import dotenv from 'dotenv';
+import { TextAnalyticsClient, AzureKeyCredential } from "@azure/ai-text-analytics";
+dotenv.config();
 
 const client = new TextAnalyticsClient(
   process.env.AZURE_LANGUAGE_ENDPOINT,
@@ -21,4 +22,4 @@ async function recognizeEntities(text) {
   return result[0]?.entities.map(e => ({ text: e.text, category: e.category })) || [];
 }
 
-module.exports = { extractKeyPhrases, recognizeEntities };
+export { extractKeyPhrases, recognizeEntities };

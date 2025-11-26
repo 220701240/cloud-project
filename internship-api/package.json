@@ -1,6 +1,7 @@
 {
   "name": "internship-api",
   "version": "1.0.1",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -13,6 +14,7 @@
     "@azure/ai-language-text": "^1.1.0",
     "@azure/ai-text-analytics": "^5.1.0",
     "@azure/storage-blob": "^12.28.0",
+    "applicationinsights": "^2.9.6",
     "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
