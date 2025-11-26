@@ -40,7 +40,7 @@
         <p>Avg. Placement Package</p>
       </div>
     </div>
-    <button class="download-btn" onclick="downloadReport()">Download Report (CSV)</button>
+    <button class="download-btn" data-action="download-report">Download Report (CSV)</button>
     <h2>Recent Placements</h2>
     <table>
       <thead>
@@ -69,63 +69,6 @@
       <tbody id="internshipTable"></tbody>
     </table>
   </section>
-  <script>
-    async function loadStats() {
-      const students = await fetch('/api/students').then(r => r.json());
-      const internships = await fetch('/api/internships').then(r => r.json());
-      const placements = await fetch('/api/placements').then(r => r.json());
-      document.getElementById('totalStudents').innerText = students.length;
-      document.getElementById('totalInternships').innerText = internships.length;
-      document.getElementById('totalPlacements').innerText = placements.length;
-      const avg = placements.length ? (placements.reduce((sum, p) => sum + (parseFloat(p.Package) || 0), 0) / placements.length).toFixed(2) : 0;
-      document.getElementById('avgPackage').innerText = avg;
-    }
-    async function loadTables() {
-      const placements = await fetch('/api/placements').then(r => r.json());
-      const placementTable = document.getElementById('placementTable');
-      placementTable.innerHTML = '';
-      placements.forEach(p => {
-        const row = placementTable.insertRow();
-        row.insertCell(0).innerText = p.PlacementID;
-        row.insertCell(1).innerText = p.StudentID;
-        row.insertCell(2).innerText = p.Company;
-        row.insertCell(3).innerText = p.Package;
-        row.insertCell(4).innerText = p.Status;
-      });
-      const internships = await fetch('/api/internships').then(r => r.json());
-      const internshipTable = document.getElementById('internshipTable');
-      internshipTable.innerHTML = '';
-      internships.forEach(i => {
-        const row = internshipTable.insertRow();
-        row.insertCell(0).innerText = i.InternshipID;
-        row.insertCell(1).innerText = i.StudentID;
-        row.insertCell(2).innerText = i.Company;
-        row.insertCell(3).innerText = i.Role;
-        row.insertCell(4).innerText = i.StartDate;
-        row.insertCell(5).innerText = i.EndDate;
-      });
-    }
-    function downloadReport() {
-      Promise.all([
-        fetch('/api/placements').then(r => r.json()),
-        fetch('/api/internships').then(r => r.json())
-      ]).then(([placements, internships]) => {
-        let csv = 'Type,ID,StudentID,Company,Role/Package,Status,StartDate,EndDate\n';
-        placements.forEach(p => {
-          csv += `Placement,${p.PlacementID},${p.StudentID},${p.Company},${p.Package},${p.Status},,,\n`;
-        });
-        internships.forEach(i => {
-          csv += `Internship,${i.InternshipID},${i.StudentID},${i.Company},${i.Role},,,${i.StartDate},${i.EndDate}\n`;
-        });
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'report.csv';
-        link.click();
-      });
-    }
-    loadStats();
-    loadTables();
-  </script>
+  <script src="/js/ui.js" defer></script>
 </body>
 </html>

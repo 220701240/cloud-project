@@ -74,18 +74,7 @@
 </head>
 <body>
 
-  <script>
-    // Auth check: Only allow admin
-    const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role');
-    if (!token || role !== 'admin') {
-      window.location.href = 'login.html';
-    }
-    function logout() {
-      localStorage.clear();
-      window.location.href = 'login.html';
-    }
-  </script>
+  <script src="/js/ui.js" defer></script>
 
   <header>
     <h1>Admin Dashboard</h1>
@@ -96,12 +85,12 @@
   <a href="#manageFaculty">Manage Faculty</a>
   <a href="#placements">Placements</a>
   <a href="#internships">Internships</a>
-  <a href="#" onclick="logout()">Logout</a>
+  <a href="#" data-action="logout">Logout</a>
   </nav>
 
   <section id="manageStudents" class="card">
     <h2>Manage Students</h2>
-    <form onsubmit="return addStudent()">
+    <form id="addStudentForm">
       <input type="text" id="studentName" placeholder="Full Name" required>
       <input type="email" id="studentEmail" placeholder="Email" required>
       <button type="submit">Add Student</button>
@@ -118,7 +107,7 @@
         <tr>
           <td>John Doe</td>
           <td>john@example.com</td>
-          <td><button onclick="deleteStudent(this)">Delete</button></td>
+          <td><button data-action="delete-row">Delete</button></td>
         </tr>
       </tbody>
     </table>
@@ -126,7 +115,7 @@
 
   <section id="manageFaculty" class="card">
     <h2>Manage Faculty</h2>
-    <form onsubmit="return addFaculty()">
+    <form id="addFacultyForm">
       <input type="text" id="facultyName" placeholder="Faculty Name" required>
       <input type="email" id="facultyEmail" placeholder="Email" required>
       <button type="submit">Add Faculty</button>
@@ -143,7 +132,7 @@
         <tr>
           <td>Dr. Smith</td>
           <td>smith@college.com</td>
-          <td><button onclick="deleteFaculty(this)">Delete</button></td>
+          <td><button data-action="delete-row">Delete</button></td>
         </tr>
       </tbody>
     </table>
@@ -193,37 +182,7 @@
     </table>
   </section>
 
-  <script>
-    function addStudent() {
-      const name = document.getElementById("studentName").value;
-      const email = document.getElementById("studentEmail").value;
-      let row = `<tr><td>${name}</td><td>${email}</td>
-        <td><button onclick="deleteStudent(this)">Delete</button></td></tr>`;
-      document.getElementById("studentTable").innerHTML += row;
-      document.getElementById("studentName").value = "";
-      document.getElementById("studentEmail").value = "";
-      return false;
-    }
-
-    function deleteStudent(btn) {
-      btn.parentElement.parentElement.remove();
-    }
-
-    function addFaculty() {
-      const name = document.getElementById("facultyName").value;
-      const email = document.getElementById("facultyEmail").value;
-      let row = `<tr><td>${name}</td><td>${email}</td>
-        <td><button onclick="deleteFaculty(this)">Delete</button></td></tr>`;
-      document.getElementById("facultyTable").innerHTML += row;
-      document.getElementById("facultyName").value = "";
-      document.getElementById("facultyEmail").value = "";
-      return false;
-    }
-
-    function deleteFaculty(btn) {
-      btn.parentElement.parentElement.remove();
-    }
-  </script>
+    <!-- Inline form handling and row actions moved to /js/ui.js -->
 
 </body>
 </html>

@@ -92,7 +92,7 @@
 
   <nav>
   <a href="#applications">Applications</a>
-  <a href="#" onclick="logout()">Logout</a>
+  <a href="#" data-action="logout">Logout</a>
   </nav>
 
   <section id="applications" class="card">
@@ -131,8 +131,10 @@
           <td>${app.Status}</td>
           <td>${app.Comments || ''}</td>
           <td>
-            <button onclick="reviewApplication(${app.ApplicationID}, 'Approved')">Approve</button>
-            <button onclick="reviewApplication(${app.ApplicationID}, 'Rejected')" class="delete">Reject</button>
+            <button data-action="review-application" data-id="${app.ApplicationID}" data-status="Approved">Approve</button>
+            <button data-action="review-application" data-id="${app.ApplicationID}" data-status="Rejected" class="delete">Reject</button>
+
+  <script src="/js/ui.js" defer></script>
           </td>
         `;
         table.appendChild(row);

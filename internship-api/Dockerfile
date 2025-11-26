@@ -4,8 +4,9 @@ WORKDIR /app
 # Copy package files from the backend folder (build from repo root)
 COPY internship-api/package*.json ./
 
-# Install only production dependencies for smaller image
-RUN npm install --production --silent
+# Install only production dependencies for smaller image (deterministic)
+# Use `npm ci` which requires a matching package-lock.json for reproducible installs
+RUN npm ci --omit=dev --silent
 
 # Copy backend source
 COPY internship-api/ ./

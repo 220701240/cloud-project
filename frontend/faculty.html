@@ -58,63 +58,13 @@
   </form>
 
   <div class="nav-buttons">
-    <button onclick="location.href='user.html'">⬅ Back</button>
-    <button class="logout" onclick="location.href='index.html'">Logout</button>
+    <button data-href="user.html">⬅ Back</button>
+    <button class="logout" data-href="index.html">Logout</button>
   </div>
 
-  <script>
-    document.getElementById("internshipForm").addEventListener("submit", async function(e) {
-      e.preventDefault();
-      const data = {
-        studentId: document.getElementById("internStudentId").value,
-        company: document.getElementById("internCompany").value,
-        role: document.getElementById("internRole").value,
-        startDate: document.getElementById("internStartDate").value,
-        endDate: document.getElementById("internEndDate").value
-      };
-      try {
-        const res = await fetch("/api/internships", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-        if (res.ok) {
-          alert("Internship details submitted successfully!");
-          this.reset();
-        } else {
-          alert("Error submitting internship details.");
-        }
-      } catch (error) {
-        console.error("Error:", error);
-        alert("Server error. Please try again later.");
-      }
-    });
+  <script src="/js/ui.js" defer></script>
+  </div>
 
-    document.getElementById("placementForm").addEventListener("submit", async function(e) {
-      e.preventDefault();
-      const data = {
-        studentId: document.getElementById("placeStudentId").value,
-        company: document.getElementById("placeCompany").value,
-        packageAmount: document.getElementById("placePackage").value,
-        status: document.getElementById("placeStatus").value
-      };
-      try {
-        const res = await fetch("/api/placements", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-        if (res.ok) {
-          alert("Placement details submitted successfully!");
-          this.reset();
-        } else {
-          alert("Error submitting placement details.");
-        }
-      } catch (error) {
-        console.error("Error:", error);
-        alert("Server error. Please try again later.");
-      }
-    });
-  </script>
+  <!-- Form handling moved to /js/ui.js -->
 </body>
 </html>

@@ -70,18 +70,7 @@
 </head>
 <body>
 
-  <script>
-    // Auth check: Only allow students
-    const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role');
-    if (!token || role !== 'student') {
-      window.location.href = 'login.html';
-    }
-    function logout() {
-      localStorage.clear();
-      window.location.href = 'login.html';
-    }
-  </script>
+  <script src="/js/ui.js" defer></script>
 
   <header>
     <h1>Student Dashboard</h1>
@@ -92,12 +81,12 @@
   <a href="#myDetails">My Details</a>
   <a href="#apply">Apply</a>
   <a href="#placementStatus">My Applications</a>
-  <a href="#" onclick="logout()">Logout</a>
+  <a href="#" data-action="logout">Logout</a>
   </nav>
 
   <section id="uploadResume" class="card">
     <h2>Upload Resume</h2>
-    <form onsubmit="return uploadResume()">
+    <form id="resumeUploadForm">
       <input type="file" id="resumeFile" accept=".pdf,.doc,.docx" required>
       <button type="submit">Upload</button>
     </form>
@@ -146,81 +135,7 @@
     </table>
   </section>
 
-  <script>
-    function uploadResume() {
-      let fileInput = document.getElementById("resumeFile");
-      let file = fileInput.files[0];
-      if (file) {
-        document.getElementById("resumeMessage").innerText = "Resume uploaded successfully: " + file.name;
-        document.getElementById("resumeLink").innerHTML = `<a href='#'>${file.name}</a>`;
-      }
-      fileInput.value = "";
-      return false;
-    }
-
-  // --- Application Workflow ---
-  // Use logged-in studentId from JWT/localStorage
-  const studentId = localStorage.getItem('userId');
-
-    async function loadCompanies() {
-      const res = await fetch('/api/companies');
-      const companies = await res.json();
-      const select = document.getElementById('company');
-      select.innerHTML = '';
-      companies.forEach(c => {
-        const option = document.createElement('option');
-        option.value = c.CompanyID;
-        option.textContent = c.Name;
-        select.appendChild(option);
-      });
-    }
-
-    document.getElementById('applicationForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const companyId = document.getElementById('company').value;
-      const role = document.getElementById('role').value;
-      const type = document.getElementById('type').value;
-      const res = await fetch('/api/applications', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + token
-        },
-        body: JSON.stringify({ studentId, companyId, role, type })
-      });
-      if (res.ok) {
-        document.getElementById('applyMsg').innerText = 'Application submitted!';
-        loadApplications();
-        e.target.reset();
-      } else {
-        document.getElementById('applyMsg').innerText = 'Error submitting application.';
-      }
-    });
-
-    async function loadApplications() {
-      const res = await fetch(`/api/applications/${studentId}`, {
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
-      const data = await res.json();
-      const table = document.getElementById('statusTable');
-      table.innerHTML = '';
-      data.forEach(app => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${app.CompanyName}</td>
-          <td>${app.Role}</td>
-          <td>${app.Type}</td>
-          <td>${app.Status}</td>
-          <td>${app.Comments || ''}</td>
-        `;
-        table.appendChild(row);
-      });
-    }
-
-    // Initialize
-    loadCompanies();
-    loadApplications();
-  </script>
+  <!-- Application scripts handled by /js/ui.js -->
 
 </body>
 </html>

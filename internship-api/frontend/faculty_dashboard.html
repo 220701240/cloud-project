@@ -73,18 +73,7 @@
 </head>
 <body>
 
-  <script>
-    // Auth check: Only allow faculty
-    const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role');
-    if (!token || role !== 'faculty') {
-      window.location.href = 'login.html';
-    }
-    function logout() {
-      localStorage.clear();
-      window.location.href = 'login.html';
-    }
-  </script>
+  <script src="/js/ui.js" defer></script>
 
   <header>
     <h1>Faculty Dashboard</h1>
@@ -92,7 +81,7 @@
 
   <nav>
   <a href="#applications">Applications</a>
-  <a href="#" onclick="logout()">Logout</a>
+  <a href="#" data-action="logout">Logout</a>
   </nav>
 
   <section id="applications" class="card">
@@ -113,55 +102,7 @@
     </table>
   </section>
 
-  <script>
-    async function loadApplications() {
-      const res = await fetch('/api/applications', {
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
-      const data = await res.json();
-      const table = document.getElementById('applicationsTable');
-      table.innerHTML = '';
-      data.forEach(app => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${app.FirstName} ${app.LastName} (${app.RollNumber})</td>
-          <td>${app.CompanyName}</td>
-          <td>${app.Role}</td>
-          <td>${app.Type}</td>
-          <td>${app.Status}</td>
-          <td>${app.Comments || ''}</td>
-          <td>
-            <button onclick="reviewApplication(${app.ApplicationID}, 'Approved')">Approve</button>
-            <button onclick="reviewApplication(${app.ApplicationID}, 'Rejected')" class="delete">Reject</button>
-          </td>
-        `;
-        table.appendChild(row);
-      });
-    }
-
-    window.reviewApplication = function(id, status) {
-      const comments = prompt('Enter comments (optional):');
-      const reviewedBy = localStorage.getItem('fullName') || 'Faculty';
-      fetch(`/api/applications/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + token
-        },
-        body: JSON.stringify({ status, reviewedBy, comments })
-      }).then(res => {
-        if (res.ok) {
-          alert('Application updated!');
-          loadApplications();
-        } else {
-          alert('Error updating application');
-        }
-      });
-    }
-
-    // Initialize
-    loadApplications();
-  </script>
+  <!-- Application loading and review moved to /js/ui.js -->
 
 </body>
 </html>

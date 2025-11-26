@@ -96,7 +96,7 @@
   <a href="#manageFaculty">Manage Faculty</a>
   <a href="#placements">Placements</a>
   <a href="#internships">Internships</a>
-  <a href="#" onclick="logout()">Logout</a>
+  <a href="#" data-action="logout">Logout</a>
   </nav>
 
   <section id="manageStudents" class="card">
@@ -118,7 +118,7 @@
         <tr>
           <td>John Doe</td>
           <td>john@example.com</td>
-          <td><button onclick="deleteStudent(this)">Delete</button></td>
+          <td><button data-action="delete-student" data-id="${studentId}">Delete</button></td>
         </tr>
       </tbody>
     </table>
@@ -143,7 +143,9 @@
         <tr>
           <td>Dr. Smith</td>
           <td>smith@college.com</td>
-          <td><button onclick="deleteFaculty(this)">Delete</button></td>
+            <td><button data-action="delete-faculty" data-id="${facultyId}">Delete</button></td>
+
+          <script src="/js/ui.js" defer></script>
         </tr>
       </tbody>
     </table>
