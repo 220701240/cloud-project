@@ -23,3 +23,9 @@ async function recognizeEntities(text) {
 }
 
 export { extractKeyPhrases, recognizeEntities };
+
+// Provide a default export so importing code that uses `import aiService from "./aiService.js"` works
+export default {
+  extractKeyPhrases,
+  recognizeEntities,
+};
